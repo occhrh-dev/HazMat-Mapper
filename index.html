@@ -46,17 +46,15 @@
         .scenario-fab.active-large { background: #f39c12; color: white; border-color: #e67e22; }
         .scenario-fab.active-small { background: #e74c3c; color: white; border-color: #c0392b; }
 
-        /* เพิ่ม Class สำหรับป้าย YOU สีเขียวเล็กๆ */
+        /* 📍 ป้าย YOU (ปรับให้อยู่ด้านล่างหมุดเพื่อไม่ให้บัง) */
         .user-location-label {
-            background-color: #27ae60; /* สีเขียว */
+            background-color: #27ae60;
             color: white;
-            border: none;
+            border: 1px solid #fff;
             border-radius: 4px;
-            padding: 1px 4px; /* ขนาดเล็กกระทัดรัด */
-            font-family: 'Sarabun', sans-serif;
+            padding: 1px 4px;
+            font-size: 10px;
             font-weight: bold;
-            font-size: 10px; /* ฟอนต์เล็ก */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         /* 📋 การ์ดข้อมูลละเอียด (เด้งเมื่อกดหมุด/ป้าย) */
         #detail-card {
@@ -88,9 +86,31 @@
         #status-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000; background: rgba(44, 62, 80, 0.95); color: white; padding: 15px 10px; text-align: center; font-size: 0.95rem; border-top-left-radius: 15px; border-top-right-radius: 15px; }
         .distance-badge { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
 
-        .chem-marker-label { background: #fff; border: 2px solid #333; border-radius: 8px; color: #333; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px; padding: 2px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; }
+        /* 📍 ป้ายชื่อสารเคมี (ทำให้ดูเหมือนปุ่ม และคลิกง่าย) */
+        .chem-marker-label {
+            background: #fff;
+            border: 2px solid #e74c3c; /* ขอบแดง */
+            border-radius: 8px;
+            color: #c0392b;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 4px 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer; /* ทำให้เป็นรูปมือเวลาชี้ */
+        }
         .wind-text-label { background: transparent; border: none; box-shadow: none; color: #008b8b; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff; text-align: center; line-height: 1.2; }
-        .cp-text-label { background: transparent; border: none; box-shadow: none; font-family: 'Sarabun', sans-serif; text-align: center; line-height: 1.2; }
+        /* 📍 ป้าย CP (พื้นหลังเขียวเข้ม ตัวหนังสือขาว เห็นชัดขึ้นมาก) */
+        .cp-text-label {
+            background: #1b5e20 !important; 
+            border: 2px solid #fff !important;
+            border-radius: 20px !important;
+            color: #fff !important;
+            font-weight: bold !important;
+            font-size: 11px !important;
+            padding: 3px 10px !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            text-align: center;
+        }
         .clear-div-icon { background: transparent; border: none; }
 
         /* 🚨 Modal เข็มทิศ */
@@ -315,9 +335,16 @@
 
             incidentMarker = L.marker(latlng, {icon: redIcon}).addTo(map)
                 .bindTooltip(`<b>UN: ${currentChem.mtl_id}</b><br>${currentChem.name}`, {
-                    permanent: true, direction: 'top', offset: [0, -35], className: 'chem-marker-label'
+                    permanent: true, 
+                    direction: 'top', 
+                    offset: [0, -35], 
+                    className: 'chem-marker-label',
+                    interactive: true // 🌟 สำคัญ! เพื่อให้ป้ายรับการคลิกได้
                 }).openTooltip();
+            
+            // 🌟 สั่งให้คลิกที่ "หมุด" หรือ "ป้าย" ก็เปิดรายละเอียดได้
             incidentMarker.on('click', openDetailCard);
+            incidentMarker.getTooltip().on('click', openDetailCard);
             drawSafetyZones(latlng);
             calculateDistance();
             
@@ -438,7 +465,8 @@
 
             let cpCenter = getDestination(lat, lng, startDist + 100, upwindAngle);
             
-            cpTextMarker = L.marker(cpLoc, {
+            // 🌟 แก้ไขตรงนี้ให้ป้ายโชว์คำว่า CP
+            cpTextMarker = L.marker(cpCenter, {
                 icon: L.divIcon({ 
                     className: 'cp-text-label', 
                     html: `<i class="fas fa-shield-alt"></i> CP (Command Post)` 
@@ -484,9 +512,9 @@
             userMarker = L.marker(e.latlng, {icon: greenIcon}).addTo(map)
                 .bindTooltip("YOU", { 
                     permanent: true, 
-                    direction: 'top', 
-                    className: 'user-location-label', // เรียกใช้ CSS ที่เราเขียนไว้ในข้อ 1
-                    offset: [0, -35] 
+                    direction: 'bottom', // 🌟 เปลี่ยนเป็นด้านล่าง
+                    className: 'user-location-label',
+                    offset: [0, 5]
                 });
 
             calculateDistance();
