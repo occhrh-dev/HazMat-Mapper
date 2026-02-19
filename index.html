@@ -36,12 +36,51 @@
         .scenario-fab {
             background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px;
             display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-            cursor: pointer; font-size: 1.2rem; color: #95a5a6; transition: 0.2s; position: relative;
+            cursor: pointer; font-size: 1rem; /* ปรับขนาดฟอนต์ให้พอดีกับตัวหนังสือ */
+            font-weight: bold; /* ตัวหนา */
+            color: #95a5a6; transition: 0.2s; position: relative;
         }
+        #btn-fire i { font-size: 1.2rem; }
         /* สถานะตอนปุ่มถูกกด (Active) */
         .scenario-fab.active-fire { background: #d35400; color: white; border-color: #c0392b; }
         .scenario-fab.active-large { background: #f39c12; color: white; border-color: #e67e22; }
         .scenario-fab.active-small { background: #e74c3c; color: white; border-color: #c0392b; }
+
+        /* เพิ่ม Class สำหรับป้าย YOU สีเขียวเล็กๆ */
+        .user-location-label {
+            background-color: #27ae60; /* สีเขียว */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 1px 4px; /* ขนาดเล็กกระทัดรัด */
+            font-family: 'Sarabun', sans-serif;
+            font-weight: bold;
+            font-size: 10px; /* ฟอนต์เล็ก */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* 📋 การ์ดข้อมูลละเอียด (เด้งเมื่อกดหมุด/ป้าย) */
+        #detail-card {
+            display: none; position: absolute; top: 75px; left: 15px; right: 15px; z-index: 1000;
+            background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            border-top: 6px solid #ff9800; padding: 15px; 
+        }
+        .detail-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .detail-title { flex: 1; font-weight: bold; color: #e65100; font-size: 1.2rem; }
+        .detail-un { font-size: 0.9rem; color: #666; margin-bottom: 10px; }
+        .detail-zone-box { background: #fff8e1; border-radius: 10px; padding: 10px; border: 1px dashed #ffb74d; }
+        .zone-title { font-weight: bold; color: #d84315; margin-bottom: 5px; }
+        .zone-item { font-size: 0.9rem; margin-bottom: 3px; }
+
+        /* 📍 ป้าย CP ปรับให้เด่น (พื้นหลังเขียวเข้ม ตัวหนังสือขาว ขอบขาว) */
+        .cp-text-label { 
+            background: #1b5e20; border: 2px solid #fff; border-radius: 20px; 
+            color: #fff; font-weight: bold; font-size: 11px; padding: 2px 10px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); white-space: nowrap; 
+        }
+        /* ลบหัวลูกศรของ Tooltip ออกเพื่อให้ดูสะอาดตา */
+        .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
+            border: none !important;
+        }
 
         .action-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.1rem; }
         .action-btn.satellite { color: #27ae60; }
@@ -72,6 +111,20 @@
     </style>
 </head>
 <body>
+    <div id="detail-card">
+        <i class="fas fa-times" style="float: right; color: #999; cursor: pointer;" onclick="closeDetailCard()"></i>
+        <div class="detail-header">
+            <i class="fas fa-biohazard" style="font-size: 1.5rem; color: #e65100;"></i>
+            <div class="detail-title" id="card-name">-</div>
+        </div>
+        <div class="detail-un" id="card-un">-</div>
+        <div class="detail-zone-box">
+            <div class="zone-title">🔴 รัศมีกั้นเขตเบื้องต้น:</div>
+            <div class="zone-item">• รั่วไหลเล็ก: <b id="card-sm">-</b> ม.</div>
+            <div class="zone-item">• รั่วไหลใหญ่: <b id="card-lg">-</b> ม.</div>
+            <div class="zone-item">• กรณีไฟไหม้: <b id="card-fire">-</b> ม.</div>
+        </div>
+    </div>
 
     <div id="map"></div>
 
@@ -89,10 +142,10 @@
                 <i class="fas fa-fire"></i>
             </div>
             <div class="scenario-fab" id="btn-large" onclick="setSpillSize('large')" title="รั่วไหลปริมาณมาก">
-                <i class="fas fa-water"></i>
+                ใหญ่
             </div>
             <div class="scenario-fab active-small" id="btn-small" onclick="setSpillSize('small')" title="รั่วไหลปริมาณน้อย">
-                <i class="fas fa-tint"></i>
+                เล็ก
             </div>
         </div>
 
@@ -264,7 +317,7 @@
                 .bindTooltip(`<b>UN: ${currentChem.mtl_id}</b><br>${currentChem.name}`, {
                     permanent: true, direction: 'top', offset: [0, -35], className: 'chem-marker-label'
                 }).openTooltip();
-            
+            incidentMarker.on('click', openDetailCard);
             drawSafetyZones(latlng);
             calculateDistance();
             
@@ -385,13 +438,10 @@
 
             let cpCenter = getDestination(lat, lng, startDist + 100, upwindAngle);
             
-            cpTextMarker = L.marker(cpCenter, {
+            cpTextMarker = L.marker(cpLoc, {
                 icon: L.divIcon({ 
                     className: 'cp-text-label', 
-                    html: `<div style="color: #1e8449; font-weight:bold; font-size:13px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff;">
-                            <i class="fas fa-shield-alt"></i> พื้นที่ตั้ง CP
-                           </div>`, 
-                    iconSize: [150, 50], iconAnchor: [75, 25] 
+                    html: `<i class="fas fa-shield-alt"></i> CP (Command Post)` 
                 })
             }).addTo(map);
             
@@ -423,13 +473,22 @@
 
             if (userMarker) map.removeLayer(userMarker);
             
-            var blueIcon = new L.Icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            // 1. สร้างไอคอนหมุดสีเขียว
+            var greenIcon = new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                 iconSize: [25, 41], iconAnchor: [12, 41]
             });
 
-            userMarker = L.marker(e.latlng, {icon: blueIcon}).addTo(map).bindPopup("📍 ตำแหน่งของคุณ").openPopup();
+            // 2. ปักหมุดพร้อมป้าย "YOU" ขนาดเล็ก
+            userMarker = L.marker(e.latlng, {icon: greenIcon}).addTo(map)
+                .bindTooltip("YOU", { 
+                    permanent: true, 
+                    direction: 'top', 
+                    className: 'user-location-label', // เรียกใช้ CSS ที่เราเขียนไว้ในข้อ 1
+                    offset: [0, -35] 
+                });
+
             calculateDistance();
         });
         
@@ -450,6 +509,18 @@
                 if (dist < maxRadius) { el.style.color = "#ff4d4d"; el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตกั้น)</span>"; } 
                 else { el.style.color = "#2ecc71"; el.innerHTML += " <span style='font-size:0.8rem;'>(✅ อยู่นอกระยะอันตราย)</span>"; }
             }
+        }
+        function openDetailCard() {
+            if(!currentChem) return;
+            document.getElementById('card-name').innerText = currentChem.name;
+            document.getElementById('card-un').innerText = `UN: ${currentChem.mtl_id} | Guide: ${currentChem.guide_num}`;
+            document.getElementById('card-sm').innerText = currentChem.sm_iso || 30;
+            document.getElementById('card-lg').innerText = currentChem.lg_iso || 100;
+            document.getElementById('card-fire').innerText = currentChem.fire_iso || 800;
+            document.getElementById('detail-card').style.display = 'block';
+        }
+        function closeDetailCard() { 
+            document.getElementById('detail-card').style.display = 'none'; 
         }
     </script>
 </body>
