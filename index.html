@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HazMat Mapper (Pro + Wind)</title>
+    <title>HazMat Mapper (Operational UI)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,15 +12,13 @@
 
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #e5e5e5; }
-        
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
 
-        /* 🔍 ช่องค้นหาแบบลอย */
+        /* 🔍 ช่องค้นหา */
         .search-container {
             position: absolute; top: 15px; left: 15px; right: 15px; z-index: 1000;
             display: flex; background: white; border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 5px 10px;
-            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 5px 10px; align-items: center;
         }
         .search-container input {
             flex: 1; border: none; outline: none; padding: 10px 5px 10px 10px;
@@ -28,60 +26,67 @@
         }
         .search-container button {
             background: #1a73e8; color: white; border: none; border-radius: 50%;
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 2px 5px rgba(26,115,232,0.4);
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
 
         /* 🔽 Dropdown */
         .suggestions-box {
             display: none; position: absolute; top: 65px; left: 20px; right: 20px; z-index: 999;
-            background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            max-height: 250px; overflow-y: auto;
+            background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 250px; overflow-y: auto;
         }
-        .suggestion-item {
-            padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.95rem;
-            cursor: pointer; display: flex; align-items: flex-start; gap: 10px;
-        }
+        .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.95rem; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; }
 
-        /* 📋 การ์ดข้อมูลสารเคมี */
+        /* 📋 การ์ดข้อมูลสารเคมี (ทำให้เล็กลง เพราะข้อมูลอยู่บน Map หมดแล้ว) */
         #chem-info {
             display: none; position: absolute; top: 75px; left: 15px; right: 15px; z-index: 1000;
-            background: white; padding: 15px; border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-left: 5px solid #ff9800;
-            animation: slideDown 0.3s ease-out; max-height: 60vh; overflow-y: auto;
+            background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-left: 5px solid #ff9800; max-height: 50vh; overflow-y: auto;
         }
         .close-btn { position: absolute; top: 10px; right: 15px; color: #999; font-size: 1.2rem; cursor: pointer; padding: 5px; }
         
-        /* 📖 คำอธิบายสัญลักษณ์ (Legend) */
-        #map-legend {
-            position: absolute; bottom: 85px; left: 15px; z-index: 1000;
-            background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 8px;
-            font-size: 0.8rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); line-height: 1.6;
-            backdrop-filter: blur(5px);
-        }
-
         /* 📍 ปุ่มด้านขวาล่าง */
-        .float-btn-group {
-            position: absolute; bottom: 85px; right: 15px; z-index: 1000;
-            display: flex; flex-direction: column; gap: 10px;
-        }
+        .float-btn-group { position: absolute; bottom: 85px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         .action-btn {
-            background: white; border: 2px solid #ddd; border-radius: 50%;
-            width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.1rem;
+            background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.1rem;
         }
         .action-btn.satellite { color: #27ae60; }
 
-        /* 📏 แถบสถานะด้านล่างสุด */
+        /* 📏 แถบสถานะ */
         #status-bar {
-            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(44, 62, 80, 0.95); backdrop-filter: blur(5px); color: white;
-            padding: 15px 10px; text-align: center; font-size: 0.95rem;
-            border-top-left-radius: 15px; border-top-right-radius: 15px;
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000; background: rgba(44, 62, 80, 0.95);
+            color: white; padding: 15px 10px; text-align: center; font-size: 0.95rem; border-top-left-radius: 15px; border-top-right-radius: 15px;
         }
         .distance-badge { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
 
-        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* ========================================= */
+        /* 🎨 Custom Labels บนแผนที่ (ลอยเหนือ Map) */
+        /* ========================================= */
+        
+        /* ป้ายชื่อสารเคมีตรงจุดเกิดเหตุ */
+        .chem-marker-label {
+            background: #fff; border: 2px solid #e74c3c; border-radius: 8px; color: #c0392b;
+            font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px;
+            padding: 2px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center;
+        }
+        
+        /* ป้ายบอกทิศทางลม */
+        .wind-text-label {
+            background: transparent; border: none; box-shadow: none; color: #008b8b;
+            font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px;
+            text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff;
+            text-align: center; line-height: 1.2;
+        }
+
+        /* ป้ายบอกจุด Command Post */
+        .cp-text-label {
+            background: transparent; border: none; box-shadow: none; color: #1e8449;
+            font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px;
+            text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff;
+            text-align: center; line-height: 1.2;
+        }
+
+        .clear-div-icon { background: transparent; border: none; }
     </style>
 </head>
 <body>
@@ -100,13 +105,6 @@
         <div id="chem-info-content"></div>
     </div>
 
-    <div id="map-legend">
-        <b>📍 สัญลักษณ์ (โซนภัย)</b><br>
-        <div style="color:#c0392b;"><i class="fas fa-circle"></i> รั่วไหลเล็ก (กั้นเขต)</div>
-        <div style="color:#f39c12;"><i class="fas fa-circle"></i> รั่วไหลใหญ่ (เฝ้าระวัง)</div>
-        <div style="color:#8e44ad;"><i class="fas fa-long-arrow-alt-up"></i> ทิศที่สารพิษจะลอยไป</div>
-    </div>
-
     <div class="float-btn-group">
         <div class="action-btn satellite" onclick="toggleMapLayer()" id="btnLayer"><i class="fas fa-satellite"></i></div>
         <div class="action-btn gps-btn" onclick="locateUser()"><i class="fas fa-crosshairs"></i></div>
@@ -117,7 +115,10 @@
     <script src="db.js"></script>
 
     <script>
-        let map, incidentMarker, userMarker, dangerCircle1, dangerCircle2, windLine, currentChem = null;
+        let map, incidentMarker, userMarker, dangerCircle1, dangerCircle2, currentChem = null;
+        let windLine, windArrow, windTextMarker; // ตัวแปรสำหรับวาดลม
+        let cpPolygon, cpTextMarker;             // ตัวแปรสำหรับวาด Command Post
+        
         let osmLayer, satLayer;
         let isSatellite = false;
 
@@ -147,21 +148,11 @@
         function showSuggestions() {
             let val = document.getElementById('chemInput').value.trim().toUpperCase();
             let box = document.getElementById('suggestionsBox');
-            
             if(val.length < 2) { box.style.display = 'none'; return; }
 
-            let matches = ERG_DATABASE.filter(c => 
-                String(c.mtl_id).includes(val) || (c.name && c.name.toUpperCase().includes(val))
-            ).slice(0, 15);
-
+            let matches = ERG_DATABASE.filter(c => String(c.mtl_id).includes(val) || (c.name && c.name.toUpperCase().includes(val))).slice(0, 15);
             if(matches.length > 0) {
-                box.innerHTML = matches.map(m => {
-                    let safeName = m.name ? m.name.replace(/'/g, "\\'") : '';
-                    return `<div class="suggestion-item" onclick="selectSuggestion('${m.mtl_id}')">
-                        <i class="fas fa-flask"></i>
-                        <div><span style="color:#1a73e8; font-weight:bold;">${m.mtl_id}</span> - <span style="color:#555;">${m.name}</span></div>
-                    </div>`
-                }).join('');
+                box.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="selectSuggestion('${m.mtl_id}')"><i class="fas fa-flask"></i> <div><span style="color:#1a73e8; font-weight:bold;">${m.mtl_id}</span> - <span style="color:#555;">${m.name}</span></div></div>`).join('');
                 box.style.display = 'block';
             } else {
                 box.innerHTML = `<div class="suggestion-item" style="color:#aaa; justify-content:center;">ไม่พบข้อมูล</div>`;
@@ -189,24 +180,14 @@
             if (found) {
                 currentChem = found;
                 infoBox.style.display = 'block';
+                // ตัดข้อมูลลมออกจากการ์ด เพราะจะโชว์บนแผนที่แทน
                 content.innerHTML = `
-                    <div style="color:#e65100; font-weight:bold; font-size:1.1rem; margin-bottom:5px; line-height:1.2;">
+                    <div style="color:#e65100; font-weight:bold; font-size:1.1rem; margin-bottom:5px;">
                         <i class="fas fa-biohazard"></i> ${found.name}
                     </div>
-                    <div style="font-size:0.9rem; color:#555; margin-bottom:8px;">
-                        <b>UN:</b> ${found.mtl_id} | <b>Guide:</b> ${found.guide_num}
-                    </div>
-                    <div style="background:#fff3e0; padding:8px; border-radius:8px; font-size:0.85rem; color:#d84315;">
-                        <b>🔴 รัศมีกั้นเขตเบื้องต้น:</b><br>
-                        • รั่วไหลเล็ก: <b>${found.sm_iso || 30}</b> ม.<br>
-                        • รั่วไหลใหญ่: <b>${found.lg_iso || 100}</b> ม.<br>
-                        • กรณีไฟไหม้: <b>${found.fire_iso || 800}</b> ม.
-                    </div>
-                    
-                    <div id="wind-data">
-                        <div style="margin-top:10px; font-size:0.8rem; color:#888; text-align:center;">
-                            <i class="fas fa-hand-pointer"></i> แตะบนแผนที่เพื่อระบุจุดเกิดเหตุ และดูข้อมูลทิศทางลม
-                        </div>
+                    <div style="font-size:0.85rem; color:#555; margin-bottom:8px;"><b>UN:</b> ${found.mtl_id} | <b>Guide:</b> ${found.guide_num}</div>
+                    <div style="margin-top:5px; font-size:0.8rem; color:#1a73e8; text-align:center;">
+                        <i class="fas fa-hand-pointer"></i> แตะบนแผนที่เพื่อจำลองจุดเกิดเหตุ
                     </div>
                 `;
                 
@@ -214,13 +195,15 @@
                 if (incidentMarker) setIncidentLocation(incidentMarker.getLatLng());
 
             } else {
-                infoBox.style.display = 'none';
-                alert("❌ ไม่พบข้อมูล (กรุณาเลือกจากรายการแนะนำ)");
+                infoBox.style.display = 'none'; alert("❌ ไม่พบข้อมูล");
             }
         }
 
         function closeInfo() { document.getElementById('chem-info').style.display = 'none'; }
 
+        // ==========================================
+        // 🗺️ ระบบปักหมุดและวาดแผนที่
+        // ==========================================
         function setIncidentLocation(latlng) {
             if (!currentChem) return; 
             
@@ -229,20 +212,21 @@
             var redIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                iconSize: [25, 41], iconAnchor: [12, 41]
             });
 
+            // 🌟 1. ปักหมุดพร้อมโชว์ "ชื่อสารเคมี" ลอยขึ้นมาตลอดเวลา
             incidentMarker = L.marker(latlng, {icon: redIcon}).addTo(map)
-                .bindPopup(`<b>🔥 จุดเกิดเหตุ</b>`).openPopup();
+                .bindTooltip(`<b>UN: ${currentChem.mtl_id}</b><br>${currentChem.name}`, {
+                    permanent: true, direction: 'top', offset: [0, -35], className: 'chem-marker-label'
+                }).openTooltip();
             
             drawSafetyZones(latlng);
             calculateDistance();
             
-            // 🌟 ดึงข้อมูล API ทิศทางลมทันทีที่ปักหมุด
-            fetchWindAndDraw(latlng.lat, latlng.lng);
-            
-            // เปิดการ์ดขึ้นมาโชว์ผลลัพธ์
-            document.getElementById('chem-info').style.display = 'block';
+            // ดึงข้อมูลลมเพื่อวาดต่อ
+            fetchWindAndDrawOnMap(latlng.lat, latlng.lng);
+            closeInfo(); // ซ่อนกล่องค้นหาเลย จะได้เห็นแผนที่ชัดๆ
         }
 
         function drawSafetyZones(latlng) {
@@ -254,83 +238,120 @@
 
             dangerCircle1 = L.circle(latlng, { color: '#c0392b', fillColor: '#e74c3c', fillOpacity: 0.4, radius: rSmall }).addTo(map);
             dangerCircle2 = L.circle(latlng, { color: '#f39c12', fillColor: '#f1c40f', fillOpacity: 0.15, radius: rLarge }).addTo(map);
-            
-            map.fitBounds(dangerCircle2.getBounds(), { padding: [50, 50] });
         }
 
-        // ==========================================
-        // 💨 ระบบดึง API สภาพอากาศและทิศทางลม
-        // ==========================================
-        async function fetchWindAndDraw(lat, lng) {
-            let windBox = document.getElementById('wind-data');
-            windBox.innerHTML = `<div style="margin-top:10px; font-size:0.8rem; color:#1a73e8; text-align:center;">
-                                    <i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูลสภาพอากาศ...
-                                 </div>`;
+        // 🌟 2. คำนวณเพื่อวาดข้อมูลลมและ CP ลงบนแผนที่
+        async function fetchWindAndDrawOnMap(lat, lng) {
             try {
-                // เรียกใช้ Open-Meteo API (ฟรี ไม่ต้องใช้คีย์)
                 let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m`);
                 let data = await res.json();
                 let windSpeed = data.current.wind_speed_10m; 
-                let windDir = data.current.wind_direction_10m; // ทิศที่ลม "พัดมา" (องศา)
+                let windDir = data.current.wind_direction_10m;
 
-                // คำนวณทิศเหนือลม (Upwind) และทิศใต้ลม (Downwind)
-                let upwindDir = getSimpleCompass(windDir); 
-                let downwindAngle = (windDir + 180) % 360; // บวกไป 180 องศา คือฝั่งที่ลอยไป
-                let downwindDir = getSimpleCompass(downwindAngle); 
+                let upwindAngle = windDir; // ทิศที่ลมมา (ทิศเหนือลม) -> สำหรับตั้ง CP
+                let downwindAngle = (windDir + 180) % 360; // ทิศที่ลมไป (ทิศใต้ลม) -> สำหรับวาดสารพิษ
+                let downwindText = getSimpleCompass(downwindAngle); 
 
-                // วาดเส้นทิศทางสารพิษบนแผนที่
-                drawPlumeLine(lat, lng, downwindAngle);
+                // วาดเส้นลูกศร และข้อความกำกับทิศทางลม
+                drawWindArrowAndText(lat, lng, downwindAngle, downwindText, windSpeed);
+                
+                // วาดพื้นที่แรเงาสีเขียว สำหรับ Command Post
+                drawCommandPostZone(lat, lng, upwindAngle);
 
-                // แสดงผลในกล่อง
-                windBox.innerHTML = `
-                    <hr style="margin:10px 0; border:0; border-top:1px dashed #ccc;">
-                    <div style="font-size:0.9rem; color:#2c3e50; background:#f8f9fa; padding:10px; border-radius:8px; border:1px solid #ddd;">
-                        <b><i class="fas fa-wind" style="color:#3498db;"></i> ข้อมูลลม ณ จุดเกิดเหตุ</b><br>
-                        • ความเร็วลม: <b>${windSpeed}</b> km/h<br>
-                        • ทิศที่สารพิษจะลอยไป: <b style="color:#8e44ad;">${downwindDir}</b><br>
-                        <div style="margin-top:8px; padding:6px; background:#e8f5e9; border:1px solid #2ecc71; border-radius:4px; color:#1b5e20;">
-                            <b>📍 แนะนำจุดตั้ง Command Post:</b><br>
-                            ควรตั้งอยู่ทางทิศ <b>${upwindDir}</b> (เหนือลม)
-                        </div>
-                    </div>
-                `;
             } catch (e) {
-                windBox.innerHTML = `<div style="margin-top:10px; font-size:0.8rem; color:#e74c3c; text-align:center;">❌ ไม่สามารถดึงข้อมูลลมได้ (ตรวจสอบอินเทอร์เน็ต)</div>`;
+                console.log("Wind fetch error");
             }
         }
 
-        // แปลงองศาเป็นทิศ (N, NE, E...) แบบเข้าใจง่าย
-        function getSimpleCompass(deg) {
-            const val = Math.floor((deg / 45) + 0.5);
-            const arr = ["เหนือ (N)", "ตะวันออกเฉียงเหนือ (NE)", "ตะวันออก (E)", "ตะวันออกเฉียงใต้ (SE)", "ใต้ (S)", "ตะวันตกเฉียงใต้ (SW)", "ตะวันตก (W)", "ตะวันตกเฉียงเหนือ (NW)"];
-            return arr[(val % 8)];
-        }
-
-        // วาดเส้นประสีม่วง บอกทิศที่สารพิษจะลอยไป
-        function drawPlumeLine(lat, lng, downwindAngle) {
+        function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
             if(windLine) map.removeLayer(windLine);
+            if(windArrow) map.removeLayer(windArrow);
+            if(windTextMarker) map.removeLayer(windTextMarker);
 
-            // คำนวณความยาวเส้น (ให้ยาวกว่าวงกลมเหลือง 2 เท่า จะได้เห็นชัด)
-            let rLarge = currentChem.iso_large || 500;
-            let distanceMeters = Math.max(rLarge * 2, 1000); 
+            let rLarge = currentChem.lg_iso || 100;
+            let distanceMeters = Math.max(rLarge * 1.5, 400); 
 
-            // สูตรคณิตศาสตร์เพื่อหาพิกัดปลายทาง (ทิศทางลม)
-            let rad = downwindAngle * Math.PI / 180;
+            let rad = angle * Math.PI / 180;
             let deltaLat = (distanceMeters * Math.cos(rad)) / 111320;
             let deltaLng = (distanceMeters * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
             let endLatLng = [lat + deltaLat, lng + deltaLng];
 
-            // วาดเส้น
-            windLine = L.polyline([[lat, lng], endLatLng], {
-                color: '#8e44ad',  // สีม่วง
-                weight: 5, 
-                dashArray: '10, 10', // เส้นประ
-                opacity: 0.8
+            // วาดเส้นทิศทางลม (สีฟ้า)
+            windLine = L.polyline([[lat, lng], endLatLng], { color: '#00d2ff', weight: 4, dashArray: '8, 8' }).addTo(map);
+
+            // วาดหัวลูกศร
+            let arrowIcon = L.divIcon({
+                className: 'clear-div-icon',
+                html: `<div style="transform: rotate(${angle}deg); color: #00d2ff; font-size: 22px; text-shadow: 0px 0px 2px rgba(0,0,0,0.8); margin-top:-10px; margin-left:-4px;"><i class="fas fa-arrow-up"></i></div>`,
+                iconSize: [20, 20]
+            });
+            windArrow = L.marker(endLatLng, {icon: arrowIcon}).addTo(map);
+
+            // 🌟 3. แปะข้อความบอกความเร็วลมไว้ข้างๆ ลูกศร
+            let textLatLng = [lat + (deltaLat * 1.1), lng + (deltaLng * 1.1)];
+            windTextMarker = L.marker(textLatLng, {
+                icon: L.divIcon({
+                    className: 'wind-text-label',
+                    html: `ทิศ ${dirText}<br>${speed} km/h`,
+                    iconSize: [120, 40], iconAnchor: [60, 20]
+                })
             }).addTo(map);
         }
 
+        // 🌟 4. วาดพื้นที่ Command Post (CP) เป็นโซนแรเงาสีเขียวฝั่งเหนือลม
+        function drawCommandPostZone(lat, lng, upwindAngle) {
+            if(cpPolygon) map.removeLayer(cpPolygon);
+            if(cpTextMarker) map.removeLayer(cpTextMarker);
+
+            let rLarge = currentChem.lg_iso || 100;
+            // เริ่มวาดห่างจากวงกลมเหลืองออกไปอีกนิด (เพื่อความปลอดภัย)
+            let startDist = rLarge + 150; 
+            let endDist = Math.max(startDist + 300, 700);
+
+            let points = [];
+            // วาดเป็นรูปทรงกรวย (Wedge) กางออก 60 องศา (-30 ถึง +30)
+            for(let i = -30; i <= 30; i += 10) {
+                points.push(getDestination(lat, lng, endDist, upwindAngle + i));
+            }
+            for(let i = 30; i >= -30; i -= 10) {
+                points.push(getDestination(lat, lng, startDist, upwindAngle + i));
+            }
+
+            // วาด Polygon สีเขียว
+            cpPolygon = L.polygon(points, {
+                color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.35, weight: 2, dashArray: '5, 5'
+            }).addTo(map);
+
+            // แปะข้อความ Command Post ตรงกลางโซน
+            let cpCenter = getDestination(lat, lng, startDist + 150, upwindAngle);
+            cpTextMarker = L.marker(cpCenter, {
+                icon: L.divIcon({
+                    className: 'cp-text-label',
+                    html: `<i class="fas fa-shield-alt"></i> พื้นที่ตั้ง CP<br>(ทิศเหนือลม)`,
+                    iconSize: [120, 40], iconAnchor: [60, 20]
+                })
+            }).addTo(map);
+            
+            // ปรับระยะกล้องให้เห็นทั้ง CP และ ลูกศรลม
+            map.fitBounds(L.featureGroup([dangerCircle2, cpPolygon, windLine]).getBounds(), { padding: [50, 50] });
+        }
+
+        // ฟังก์ชันช่วยคำนวณพิกัดจากระยะทางและองศา
+        function getDestination(lat, lng, dist, bearing) {
+            let rad = bearing * Math.PI / 180;
+            let deltaLat = (dist * Math.cos(rad)) / 111320;
+            let deltaLng = (dist * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
+            return [lat + deltaLat, lng + deltaLng];
+        }
+
+        function getSimpleCompass(deg) {
+            const val = Math.floor((deg / 45) + 0.5);
+            const arr = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+            return arr[(val % 8)];
+        }
+
         // ==========================================
-        // 📍 ระบบ GPS ของผู้ใช้
+        // 📍 ระบบ GPS 
         // ==========================================
         function locateUser() { 
             let btn = document.querySelector('.gps-btn i');
@@ -347,17 +368,11 @@
             var blueIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                iconSize: [25, 41], iconAnchor: [12, 41]
             });
 
             userMarker = L.marker(e.latlng, {icon: blueIcon}).addTo(map).bindPopup("📍 ตำแหน่งของคุณ").openPopup();
             calculateDistance();
-        });
-
-        map.on('locationerror', function(e){ 
-            let btn = document.querySelector('.gps-btn i');
-            btn.className = "fas fa-crosshairs";
-            alert("ไม่สามารถระบุพิกัดได้ กรุณาเปิด GPS ที่มือถือครับ"); 
         });
         
         function calculateDistance() {
@@ -366,16 +381,11 @@
                 let el = document.getElementById('distDisplay');
                 el.innerText = Math.round(dist).toLocaleString();
                 
-                let rSmall = currentChem.sm_iso || 30;
-                let rLarge = currentChem.lg_iso || 100;
+                let rSmall = currentChem.sm_iso || 30; let rLarge = currentChem.lg_iso || 100;
 
-                if (dist < rSmall) {
-                    el.style.color = "#ff4d4d"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(⛔ อันตราย! อยู่ในเขตกั้น)</span>";
-                } else if (dist < rLarge) {
-                    el.style.color = "#f39c12"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(⚠️ ระวัง! อาจได้รับผลกระทบ)</span>";
-                } else {
-                    el.style.color = "#2ecc71"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(✅ ปลอดภัย)</span>";
-                }
+                if (dist < rSmall) { el.style.color = "#ff4d4d"; el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตกั้น)</span>"; } 
+                else if (dist < rLarge) { el.style.color = "#f39c12"; el.innerHTML += " <span style='font-size:0.8rem;'>(⚠️ เฝ้าระวัง)</span>"; } 
+                else { el.style.color = "#2ecc71"; el.innerHTML += " <span style='font-size:0.8rem;'>(✅ ปลอดภัย)</span>"; }
             }
         }
     </script>
