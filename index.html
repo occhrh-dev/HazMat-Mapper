@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HazMat Mapper (First Responder UI)</title>
+    <title>HazMat Mapper (Minimalist UI)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,74 +21,53 @@
         .suggestions-box { display: none; position: absolute; top: 65px; left: 20px; right: 20px; z-index: 999; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 250px; overflow-y: auto; }
         .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.95rem; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; }
 
-        #scenario-selector { display: none; position: absolute; top: 75px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(255,255,255,0.95); padding: 5px; border-radius: 25px; backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; gap: 8px; border: 1px solid #ddd; align-items: center; }
-        .spill-group { display: flex; gap: 2px; background: #f1f1f1; border-radius: 20px; padding: 2px; }
-        .scenario-btn { border: none; padding: 8px 15px; border-radius: 20px; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 0.85rem; cursor: pointer; background: transparent; color: #555; transition: 0.2s; }
-        .scenario-btn.active-small { background: #e74c3c; color: white; box-shadow: 0 2px 5px rgba(231,76,60,0.4); }
-        .scenario-btn.active-large { background: #f39c12; color: white; box-shadow: 0 2px 5px rgba(243,156,18,0.4); }
-        .scenario-btn.active-fire { background: #d35400; color: white; border: 1px solid #c0392b; box-shadow: 0 2px 5px rgba(211,84,0,0.5); }
-        .divider { width: 1px; background: #ccc; height: 25px; }
+        /* 🎛️ ปุ่มเลือกสถานการณ์ (แบบตัวหนังสือ) */
+        .float-btn-group { position: absolute; bottom: 85px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; align-items: center;}
+        #scenario-selector { display: none; flex-direction: column; gap: 10px; margin-bottom: 5px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
 
-        .float-btn-group { position: absolute; bottom: 85px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .scenario-fab {
+            background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            cursor: pointer; font-size: 0.85rem; color: #7f8c8d; transition: 0.2s; font-weight: bold;
+        }
+        .scenario-fab.active-fire { background: #d35400; color: white; border-color: #c0392b; font-size: 1.2rem; }
+        .scenario-fab.active-large { background: #f39c12; color: white; border-color: #e67e22; }
+        .scenario-fab.active-small { background: #e74c3c; color: white; border-color: #c0392b; }
+
         .action-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.1rem; }
         .action-btn.satellite { color: #27ae60; }
 
         #status-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000; background: rgba(44, 62, 80, 0.95); color: white; padding: 15px 10px; text-align: center; font-size: 0.95rem; border-top-left-radius: 15px; border-top-right-radius: 15px; }
         .distance-badge { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
 
-        .chem-marker-label { background: #fff; border: 2px solid #333; border-radius: 8px; color: #333; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px; padding: 2px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; }
-        .wind-text-label { background: transparent; border: none; box-shadow: none; color: #008b8b; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff; text-align: center; line-height: 1.2; }
-        .cp-text-label { background: transparent; border: none; box-shadow: none; font-family: 'Sarabun', sans-serif; text-align: center; line-height: 1.2; }
+        /* ป้ายกำกับบนแผนที่ */
+        .chem-marker-label { background: #fff; border: 2px solid #333; border-radius: 8px; color: #333; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 12px; padding: 2px 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; }
+        
+        /* 📍 ป้ายกำกับตัวคุณ (YOU) - เล็กและกระชับ */
+        .user-label {
+            background: #27ae60; border: 1px solid #fff; border-radius: 4px; color: #fff;
+            font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 10px;
+            padding: 1px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .wind-text-label { background: transparent; border: none; box-shadow: none; color: #008b8b; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 12px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff; text-align: center; line-height: 1.1; }
+        .cp-text-label { background: transparent; border: none; box-shadow: none; font-family: 'Sarabun', sans-serif; text-align: center; line-height: 1.1; font-size: 12px; }
         .clear-div-icon { background: transparent; border: none; }
 
-        /* ========================================= */
-        /* 🚨 แป้นเข็มทิศทิศทางลม (Visual Compass UI) */
-        /* ========================================= */
-        #wind-modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
-        }
-        .wind-modal-box {
-            background: white; width: 92%; max-width: 380px; border-radius: 20px;
-            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Sarabun', sans-serif;
-            text-align: center; border-top: 6px solid #3498db;
-        }
+        /* 🚨 Modal เข็มทิศ */
+        #wind-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .wind-modal-box { background: white; width: 92%; max-width: 380px; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Sarabun', sans-serif; text-align: center; border-top: 6px solid #3498db; }
         .wind-modal-box h3 { margin: 0 0 5px 0; color: #2c3e50; font-size: 1.25rem; }
         .wind-modal-box p { font-size: 0.9rem; color: #c0392b; margin-bottom: 15px; font-weight: bold; }
-        
         .speed-display { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #ddd;}
         
-        /* 🧭 แผงปุ่ม 8 ทิศทาง */
-        .compass-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;
-        }
-        .dir-btn {
-            background: #f1f2f6; border: 2px solid #dfe4ea; border-radius: 12px;
-            padding: 15px 5px; font-family: 'Sarabun', sans-serif; font-weight: bold; color: #576574;
-            cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px;
-        }
+        .compass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+        .dir-btn { background: #f1f2f6; border: 2px solid #dfe4ea; border-radius: 12px; padding: 15px 5px; font-family: 'Sarabun', sans-serif; font-weight: bold; color: #576574; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .dir-btn i { font-size: 1.2rem; }
-        .dir-btn span { font-size: 0.75rem; line-height: 1; }
-        
-        /* สไตล์ตอนปุ่มถูกเลือก */
-        .dir-btn.selected {
-            background: #e8f0fe; border-color: #1a73e8; color: #1a73e8;
-            box-shadow: 0 4px 10px rgba(26,115,232,0.3); transform: scale(1.05);
-        }
-        
-        /* ตรงกลางของแป้น (รูปคน) */
-        .compass-center {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #bdc3c7; font-size: 2rem;
-        }
-
-        .btn-confirm-wind {
-            background: #2ecc71; color: white; border: none; padding: 15px; width: 100%;
-            border-radius: 12px; font-size: 1.1rem; font-weight: bold; font-family: 'Sarabun', sans-serif; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); transition: 0.2s; margin-top: 10px;
-        }
-        .btn-confirm-wind:active { transform: scale(0.95); }
+        .dir-btn span { font-size: 0.7rem; line-height: 1; }
+        .dir-btn.selected { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; box-shadow: 0 4px 10px rgba(26,115,232,0.3); transform: scale(1.05); }
+        .compass-center { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bdc3c7; font-size: 2rem; }
+        .btn-confirm-wind { background: #2ecc71; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 1.1rem; font-weight: bold; font-family: 'Sarabun', sans-serif; cursor: pointer; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); transition: 0.2s; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -102,16 +81,19 @@
 
     <div id="suggestionsBox" class="suggestions-box"></div>
 
-    <div id="scenario-selector">
-        <div class="spill-group">
-            <button class="scenario-btn active-small" id="btn-small" onclick="setSpillSize('small')">💧 รั่วเล็ก</button>
-            <button class="scenario-btn" id="btn-large" onclick="setSpillSize('large')">🌊 รั่วใหญ่</button>
-        </div>
-        <div class="divider"></div>
-        <button class="scenario-btn" id="btn-fire" onclick="toggleFire()">🔥 ไฟไหม้</button>
-    </div>
-
     <div class="float-btn-group">
+        <div id="scenario-selector">
+            <div class="scenario-fab" id="btn-fire" onclick="toggleFire()" title="ไฟไหม้">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="scenario-fab" id="btn-large" onclick="setSpillSize('large')" title="รั่วไหลปริมาณมาก">
+                ใหญ่
+            </div>
+            <div class="scenario-fab active-small" id="btn-small" onclick="setSpillSize('small')" title="รั่วไหลปริมาณน้อย">
+                เล็ก
+            </div>
+        </div>
+
         <div class="action-btn satellite" onclick="toggleMapLayer()" id="btnLayer"><i class="fas fa-satellite"></i></div>
         <div class="action-btn gps-btn" onclick="locateUser()"><i class="fas fa-crosshairs"></i></div>
     </div>
@@ -121,29 +103,20 @@
     <div id="wind-modal-overlay">
         <div class="wind-modal-box">
             <h3><i class="fas fa-wind" style="color:#3498db;"></i> ลมพัดมาจากทิศใด?</h3>
-            <p>กรุณาคลิกเลือกทิศทางที่ลมพัดมาโดนตัวคุณ<br>(ระบบเลือกค่าจาก API ไว้ให้เบื้องต้น)</p>
-            
-            <div class="speed-display">
-                <i class="fas fa-tachometer-alt"></i> ความเร็วลมอ้างอิงจาก API: <b id="apiWindSpeed">0</b> m/s
-            </div>
-
+            <p>กรุณาคลิกเลือกทิศทางที่ลมพัดมาโดนตัวคุณ</p>
+            <div class="speed-display">ความเร็วลมอ้างอิง: <b id="apiWindSpeed">0</b> m/s</div>
             <div class="compass-grid">
-                <button class="dir-btn" data-angle="315" onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(-45deg);"></i><span>ตะวันตก<br>เฉียงเหนือ</span></button>
+                <button class="dir-btn" data-angle="315" onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(-45deg);"></i><span>NW</span></button>
                 <button class="dir-btn" data-angle="0"   onclick="selectDir(this)"><i class="fas fa-arrow-down"></i><span>เหนือ (N)</span></button>
-                <button class="dir-btn" data-angle="45"  onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(45deg);"></i><span>ตะวันออก<br>เฉียงเหนือ</span></button>
-                
-                <button class="dir-btn" data-angle="270" onclick="selectDir(this)"><i class="fas fa-arrow-right"></i><span>ตะวันตก (W)</span></button>
+                <button class="dir-btn" data-angle="45"  onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(45deg);"></i><span>NE</span></button>
+                <button class="dir-btn" data-angle="270" onclick="selectDir(this)"><i class="fas fa-arrow-right"></i><span>ตก (W)</span></button>
                 <div class="compass-center"><i class="fas fa-street-view"></i></div>
-                <button class="dir-btn" data-angle="90"  onclick="selectDir(this)"><i class="fas fa-arrow-left"></i><span>ตะวันออก (E)</span></button>
-                
-                <button class="dir-btn" data-angle="225" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-45deg);"></i><span>ตะวันตก<br>เฉียงใต้</span></button>
+                <button class="dir-btn" data-angle="90"  onclick="selectDir(this)"><i class="fas fa-arrow-left"></i><span>ออก (E)</span></button>
+                <button class="dir-btn" data-angle="225" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-45deg);"></i><span>SW</span></button>
                 <button class="dir-btn" data-angle="180" onclick="selectDir(this)"><i class="fas fa-arrow-up"></i><span>ใต้ (S)</span></button>
-                <button class="dir-btn" data-angle="135" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(45deg);"></i><span>ตะวันออก<br>เฉียงใต้</span></button>
+                <button class="dir-btn" data-angle="135" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(45deg);"></i><span>SE</span></button>
             </div>
-
-            <button class="btn-confirm-wind" onclick="confirmWindData()">
-                <i class="fas fa-check-circle"></i> ยืนยันข้อมูลลม
-            </button>
+            <button class="btn-confirm-wind" onclick="confirmWindData()">ยืนยันข้อมูลลม</button>
         </div>
     </div>
 
@@ -152,13 +125,10 @@
     <script>
         let map, incidentMarker, userMarker, currentChem = null;
         let spillCircle, fireCircle, windLine, windArrow, windTextMarker, cpPolygon, cpTextMarker; 
-        
         let osmLayer, satLayer;
         let isSatellite = false;
-        
         let spillSize = 'small'; 
         let hasFire = false;     
-        
         let currentWindAngle = 0; 
         let currentWindSpeed = 0;
         let tempLatLng = null; 
@@ -167,13 +137,11 @@
             map = L.map('map', { zoomControl: false }).setView([12.6814, 101.2816], 12); 
             osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
             satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-            
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
                 setIncidentLocation(e.latlng); 
             });
         }
-        
         initMap();
         setTimeout(() => { locateUser(); }, 800); 
 
@@ -187,7 +155,6 @@
             let val = document.getElementById('chemInput').value.trim().toUpperCase();
             let box = document.getElementById('suggestionsBox');
             if(val.length < 2) { box.style.display = 'none'; return; }
-
             let matches = ERG_DATABASE.filter(c => String(c.mtl_id).includes(val) || (c.name && c.name.toUpperCase().includes(val))).slice(0, 15);
             if(matches.length > 0) {
                 box.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="selectSuggestion('${m.mtl_id}')"><i class="fas fa-flask"></i> <div><span style="color:#1a73e8; font-weight:bold;">${m.mtl_id}</span> - <span style="color:#555;">${m.name}</span></div></div>`).join('');
@@ -208,22 +175,16 @@
             let val = document.getElementById('chemInput').value.trim().toUpperCase();
             if(!val) return;
             document.getElementById('suggestionsBox').style.display = 'none';
-
             let found = ERG_DATABASE.find(c => String(c.mtl_id) === val || (c.name && c.name.toUpperCase() === val));
             if(!found) found = ERG_DATABASE.find(c => c.name && c.name.toUpperCase().includes(val));
-            
             if (found) {
                 currentChem = found;
                 document.getElementById('chemInput').blur();
                 document.getElementById('scenario-selector').style.display = 'flex';
-                
                 setSpillSize('small');
                 if(hasFire) toggleFire();
-
                 if (incidentMarker) setIncidentLocation(incidentMarker.getLatLng());
-            } else {
-                alert("❌ ไม่พบข้อมูล");
-            }
+            } else { alert("❌ ไม่พบข้อมูล"); }
         }
 
         function setSpillSize(size) {
@@ -244,12 +205,10 @@
             let latlng = incidentMarker.getLatLng();
             drawSafetyZones(latlng);
             calculateDistance();
-            
             if(currentWindSpeed > 0) {
                 let upwindAngle = currentWindAngle; 
                 let downwindAngle = (currentWindAngle + 180) % 360; 
-                let downwindText = getSimpleCompass(downwindAngle); 
-                drawWindArrowAndText(latlng.lat, latlng.lng, downwindAngle, downwindText, currentWindSpeed);
+                drawWindArrowAndText(latlng.lat, latlng.lng, downwindAngle, getSimpleCompass(downwindAngle), currentWindSpeed);
                 drawCommandPostZone(latlng.lat, latlng.lng, upwindAngle);
             }
         }
@@ -263,23 +222,18 @@
 
         function setIncidentLocation(latlng) {
             if (!currentChem) return; 
-            
             if (incidentMarker) map.removeLayer(incidentMarker);
-            
             var redIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                 iconSize: [25, 41], iconAnchor: [12, 41]
             });
-
             incidentMarker = L.marker(latlng, {icon: redIcon}).addTo(map)
                 .bindTooltip(`<b>UN: ${currentChem.mtl_id}</b><br>${currentChem.name}`, {
                     permanent: true, direction: 'top', offset: [0, -35], className: 'chem-marker-label'
                 }).openTooltip();
-            
             drawSafetyZones(latlng);
             calculateDistance();
-            
             tempLatLng = latlng; 
             fetchWindAndShowModal(latlng.lat, latlng.lng);
         }
@@ -287,83 +241,47 @@
         function drawSafetyZones(latlng) {
             if (spillCircle) map.removeLayer(spillCircle);
             if (fireCircle) map.removeLayer(fireCircle);
-            
             let rSpill = (spillSize === 'small') ? (currentChem.sm_iso || 30) : (currentChem.lg_iso || 100);
             let spillColor = (spillSize === 'small') ? '#e74c3c' : '#f39c12';
-            
             spillCircle = L.circle(latlng, { color: spillColor, fillColor: spillColor, fillOpacity: 0.35, weight: 2, radius: rSpill }).addTo(map);
-
             if (hasFire) {
                 let rFire = currentChem.fire_iso || 800;
                 fireCircle = L.circle(latlng, { color: '#d35400', fillColor: '#e67e22', fillOpacity: 0.15, weight: 3, dashArray: '10, 10', radius: rFire }).addTo(map);
             }
-
             let layersToFit = hasFire ? [spillCircle, fireCircle] : [spillCircle];
             map.fitBounds(L.featureGroup(layersToFit).getBounds(), { padding: [30, 30] });
         }
 
-        // ==========================================
-        // 🚨 ฟังก์ชันจัดการปุ่มเข็มทิศ
-        // ==========================================
-        
-        // ฟังก์ชันหาทิศทางที่ใกล้เคียงที่สุดจาก API เพื่อมากดปุ่มให้ล่วงหน้า
-        function getClosestCompassAngle(degree) {
-            const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-            return angles.reduce((prev, curr) => Math.abs(curr - degree) < Math.abs(prev - degree) ? curr : prev);
-        }
-
-        // ฟังก์ชันเมื่อผู้ใช้กดจิ้มปุ่มทิศทาง
         function selectDir(btnElement) {
-            // ลบสีปุ่มเดิมออกให้หมด
             document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('selected'));
-            // เติมสีปุ่มที่เพิ่งกด
             btnElement.classList.add('selected');
-            // เก็บค่าองศาเตรียมนำไปวาด
             currentWindAngle = parseInt(btnElement.getAttribute('data-angle'));
         }
 
         async function fetchWindAndShowModal(lat, lng) {
             try {
                 document.querySelector('.gps-btn i').className = "fas fa-spinner fa-spin";
-                
                 let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms`);
                 let data = await res.json();
-                
-                // เก็บความเร็วลมอ้างอิง
                 currentWindSpeed = data.current.wind_speed_10m;
                 document.getElementById('apiWindSpeed').innerText = currentWindSpeed;
-                
-                // หาปุ่มที่ใกล้เคียงกับลม API มากที่สุด แล้วสั่งให้กดล่วงหน้า
-                let closestAngle = getClosestCompassAngle(data.current.wind_direction_10m);
-                let targetBtn = document.querySelector(`.dir-btn[data-angle="${closestAngle}"]`);
-                if(targetBtn) selectDir(targetBtn);
-                
+                let closest = [0, 45, 90, 135, 180, 225, 270, 315].reduce((p, c) => Math.abs(c - data.current.wind_direction_10m) < Math.abs(p - data.current.wind_direction_10m) ? c : p);
+                let target = document.querySelector(`.dir-btn[data-angle="${closest}"]`);
+                if(target) selectDir(target);
                 document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
                 document.getElementById('wind-modal-overlay').style.display = 'flex';
-
             } catch (e) { 
-                console.log("Wind fetch error"); 
                 document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
-                document.getElementById('apiWindSpeed').innerText = 0;
-                // ถ้า API ล่ม ก็ default ไปที่ทิศเหนือ
-                let defaultBtn = document.querySelector(`.dir-btn[data-angle="0"]`);
-                if(defaultBtn) selectDir(defaultBtn);
-                
                 document.getElementById('wind-modal-overlay').style.display = 'flex';
             }
         }
 
         function confirmWindData() {
             document.getElementById('wind-modal-overlay').style.display = 'none';
-            // currentWindAngle ถูกเก็บค่าไว้แล้วตอนฟังก์ชัน selectDir ทำงาน
-
             if(tempLatLng) {
-                let upwindAngle = currentWindAngle; 
-                let downwindAngle = (currentWindAngle + 180) % 360; 
-                let downwindText = getSimpleCompass(downwindAngle); 
-
-                drawWindArrowAndText(tempLatLng.lat, tempLatLng.lng, downwindAngle, downwindText, currentWindSpeed);
-                drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, upwindAngle);
+                let downwind = (currentWindAngle + 180) % 360; 
+                drawWindArrowAndText(tempLatLng.lat, tempLatLng.lng, downwind, getSimpleCompass(downwind), currentWindSpeed);
+                drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, currentWindAngle);
             }
         }
 
@@ -371,70 +289,34 @@
             if(windLine) map.removeLayer(windLine);
             if(windArrow) map.removeLayer(windArrow);
             if(windTextMarker) map.removeLayer(windTextMarker);
-
-            let maxRadius = getMaxActiveRadius();
-            let distanceMeters = Math.max(maxRadius * 1.5, 250); 
-
+            let dist = Math.max(getMaxActiveRadius() * 1.5, 250); 
             let rad = angle * Math.PI / 180;
-            let deltaLat = (distanceMeters * Math.cos(rad)) / 111320;
-            let deltaLng = (distanceMeters * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
-            let endLatLng = [lat + deltaLat, lng + deltaLng];
-
-            windLine = L.polyline([[lat, lng], endLatLng], { color: '#00d2ff', weight: 4, dashArray: '8, 8' }).addTo(map);
-
-            let arrowIcon = L.divIcon({
-                className: 'clear-div-icon',
-                html: `<div style="transform: rotate(${angle}deg); color: #00d2ff; font-size: 22px; text-shadow: 0px 0px 2px rgba(0,0,0,0.8); margin-top:-10px; margin-left:-4px;"><i class="fas fa-arrow-up"></i></div>`,
-                iconSize: [20, 20]
-            });
-            windArrow = L.marker(endLatLng, {icon: arrowIcon}).addTo(map);
-
-            let textLatLng = [lat + (deltaLat * 1.15), lng + (deltaLng * 1.15)];
-            windTextMarker = L.marker(textLatLng, {
-                icon: L.divIcon({ className: 'wind-text-label', html: `ทิศ ${dirText}<br>${speed} m/s`, iconSize: [120, 40], iconAnchor: [60, 20] })
-            }).addTo(map);
+            let end = [lat + (dist * Math.cos(rad)) / 111320, lng + (dist * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180))];
+            windLine = L.polyline([[lat, lng], end], { color: '#00d2ff', weight: 4, dashArray: '8, 8' }).addTo(map);
+            windArrow = L.marker(end, {icon: L.divIcon({className: 'clear-div-icon', html: `<div style="transform: rotate(${angle}deg); color: #00d2ff; font-size: 22px; text-shadow: 0px 0px 2px #000; margin-top:-10px; margin-left:-4px;"><i class="fas fa-arrow-up"></i></div>`, iconSize: [20, 20]})}).addTo(map);
+            windTextMarker = L.marker([lat + (dist * 1.15 * Math.cos(rad)) / 111320, lng + (dist * 1.15 * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180))], {icon: L.divIcon({ className: 'wind-text-label', html: `${dirText}<br>${speed} m/s`, iconSize: [100, 40], iconAnchor: [50, 20] })}).addTo(map);
         }
 
-        function drawCommandPostZone(lat, lng, upwindAngle) {
+        function drawCommandPostZone(lat, lng, upwind) {
             if(cpPolygon) map.removeLayer(cpPolygon);
             if(cpTextMarker) map.removeLayer(cpTextMarker);
-
-            let maxRadius = getMaxActiveRadius();
-            let startDist = maxRadius + 100; 
-            let endDist = Math.max(startDist + 200, 400); 
-
+            let maxR = getMaxActiveRadius();
+            let start = maxR + 100, end = Math.max(start + 200, 400); 
             let points = [];
-            for(let i = -30; i <= 30; i += 10) points.push(getDestination(lat, lng, endDist, upwindAngle + i));
-            for(let i = 30; i >= -30; i -= 10) points.push(getDestination(lat, lng, startDist, upwindAngle + i));
-
+            for(let i = -30; i <= 30; i += 10) points.push(getDest(lat, lng, end, upwind + i));
+            for(let i = 30; i >= -30; i -= 10) points.push(getDest(lat, lng, start, upwind + i));
             cpPolygon = L.polygon(points, { color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.35, weight: 2, dashArray: '5, 5' }).addTo(map);
-
-            let cpCenter = getDestination(lat, lng, startDist + 100, upwindAngle);
-            
-            cpTextMarker = L.marker(cpCenter, {
-                icon: L.divIcon({ 
-                    className: 'cp-text-label', 
-                    html: `<div style="color: #1e8449; font-weight:bold; font-size:13px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff;">
-                            <i class="fas fa-shield-alt"></i> พื้นที่ตั้ง CP
-                           </div>`, 
-                    iconSize: [150, 50], iconAnchor: [75, 25] 
-                })
-            }).addTo(map);
-            
-            let layersToFit = hasFire ? [fireCircle, cpPolygon, windLine] : [spillCircle, cpPolygon, windLine];
-            map.fitBounds(L.featureGroup(layersToFit).getBounds(), { padding: [50, 50] });
+            let cpLoc = getDest(lat, lng, start + 100, upwind);
+            cpTextMarker = L.marker(cpLoc, {icon: L.divIcon({ className: 'cp-text-label', html: `<div style="color: #1e8449; font-weight:bold;"><i class="fas fa-shield-alt"></i> CP</div>`, iconSize: [100, 40], iconAnchor: [50, 20] })}).addTo(map);
         }
 
-        function getDestination(lat, lng, dist, bearing) {
-            let rad = bearing * Math.PI / 180;
-            let deltaLat = (dist * Math.cos(rad)) / 111320;
-            let deltaLng = (dist * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
-            return [lat + deltaLat, lng + deltaLng];
+        function getDest(lat, lng, d, b) {
+            let r = b * Math.PI / 180;
+            return [lat + (d * Math.cos(r)) / 111320, lng + (d * Math.sin(r)) / (111320 * Math.cos(lat * Math.PI / 180))];
         }
 
         function getSimpleCompass(deg) {
-            const arr = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-            return arr[Math.floor((deg / 45) + 0.5) % 8];
+            return ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.floor((deg / 45) + 0.5) % 8];
         }
 
         function locateUser() { 
@@ -444,25 +326,25 @@
         }
 
         map.on('locationfound', function(e) {
-            let btn = document.querySelector('.gps-btn i');
-            btn.className = "fas fa-crosshairs";
-
+            document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
             if (userMarker) map.removeLayer(userMarker);
             
-            var blueIcon = new L.Icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            // 🌟 เปลี่ยนเป็นหมุดสีเขียว
+            var greenIcon = new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41]
+                iconSize: [20, 32], iconAnchor: [10, 32] // ขนาดเล็กลงหน่อย
             });
 
-            userMarker = L.marker(e.latlng, {icon: blueIcon}).addTo(map).bindPopup("📍 ตำแหน่งของคุณ").openPopup();
+            // 🌟 ป้าย "YOU" ขนาดจิ๋ว ไม่บังทาง
+            userMarker = L.marker(e.latlng, {icon: greenIcon}).addTo(map)
+                .bindTooltip("YOU", { permanent: true, direction: 'top', offset: [0, -32], className: 'user-label' });
             calculateDistance();
         });
         
         map.on('locationerror', function(e){ 
-            let btn = document.querySelector('.gps-btn i');
-            btn.className = "fas fa-crosshairs";
-            alert("⚠️ คำเตือนความปลอดภัย:\n\nระบบไม่สามารถระบุพิกัดของคุณได้ กรุณาตรวจสอบว่าคุณได้ 'อนุญาต (Allow)' ให้เบราว์เซอร์เข้าถึงตำแหน่ง และเปิด GPS ในมือถือแล้ว เพื่อให้ระบบคำนวณระยะห่างเพื่อความปลอดภัยครับ"); 
+            document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
+            alert("⚠️ กรุณาเปิด GPS และอนุญาตให้เข้าถึงตำแหน่ง เพื่อความปลอดภัยครับ"); 
         });
         
         function calculateDistance() {
@@ -470,11 +352,9 @@
                 let dist = map.distance(incidentMarker.getLatLng(), userMarker.getLatLng());
                 let el = document.getElementById('distDisplay');
                 el.innerText = Math.round(dist).toLocaleString();
-                
-                let maxRadius = getMaxActiveRadius();
-
-                if (dist < maxRadius) { el.style.color = "#ff4d4d"; el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตกั้น)</span>"; } 
-                else { el.style.color = "#2ecc71"; el.innerHTML += " <span style='font-size:0.8rem;'>(✅ อยู่นอกระยะอันตราย)</span>"; }
+                let maxR = getMaxActiveRadius();
+                if (dist < maxR) { el.style.color = "#ff4d4d"; el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อันตราย!)</span>"; } 
+                else { el.style.color = "#2ecc71"; el.innerHTML += " <span style='font-size:0.8rem;'>(✅ ปลอดภัย)</span>"; }
             }
         }
     </script>
