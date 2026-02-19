@@ -69,11 +69,19 @@
         .zone-title { font-weight: bold; color: #d84315; margin-bottom: 5px; }
         .zone-item { font-size: 0.9rem; margin-bottom: 3px; }
 
-        /* 📍 ป้าย CP ปรับให้เด่น (พื้นหลังเขียวเข้ม ตัวหนังสือขาว ขอบขาว) */
-        .cp-text-label { 
-            background: #1b5e20; border: 2px solid #fff; border-radius: 20px; 
-            color: #fff; font-weight: bold; font-size: 11px; padding: 2px 10px; 
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); white-space: nowrap; 
+        /* 📍 ป้าย CP ปรับให้แสดงผลแนวตั้ง (Icon บน, Text ล่าง) */
+        .cp-text-label {
+            background: #1b5e20 !important; /* เขียวเข้ม */
+            border: 2px solid #fff !important;
+            border-radius: 8px !important; /* เปลี่ยนเป็นเหลี่ยมมนเล็กน้อยจะดูเป็นป้ายมากขึ้น */
+            color: #fff !important;
+            font-weight: bold !important;
+            font-size: 10px !important; /* ปรับขนาดฟอนต์เล็กลงนิดนึ่งเพื่อให้พอดี 2 บรรทัด */
+            padding: 5px !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            text-align: center !important; /* จัดให้ไอคอนกับตัวหนังสืออยู่กึ่งกลางกัน */
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
         }
         /* ลบหัวลูกศรของ Tooltip ออกเพื่อให้ดูสะอาดตา */
         .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
@@ -465,13 +473,16 @@
 
             let cpCenter = getDestination(lat, lng, startDist + 100, upwindAngle);
             
-            // 🌟 แก้ไขตรงนี้ให้ป้ายโชว์คำว่า CP
-            cpTextMarker = L.marker(cpCenter, {
-                icon: L.divIcon({ 
-                    className: 'cp-text-label', 
-                    html: `<i class="fas fa-shield-alt"></i> CP (Command Post)` 
-                })
-            }).addTo(map);
+            // หาบรรทัดนี้ในฟังก์ชัน drawCommandPostZone แล้วแก้ไขตามนี้ครับ
+        cpTextMarker = L.marker(cpLoc, {
+            icon: L.divIcon({ 
+                className: 'cp-text-label', 
+                // ใช้ <br> เพื่อตัดบรรทัดให้ข้อความลงไปอยู่ใต้โล่
+                html: `<i class="fas fa-shield-alt" style="font-size: 14px;"></i><br>จุดตั้ง Command Post`, 
+                iconSize: [110, 42], // ปรับความกว้างและความสูงให้รองรับข้อความ 2 บรรทัด
+                iconAnchor: [55, 21] // จัดให้อยู่กึ่งกลางพิกัดพอดี (ครึ่งหนึ่งของ iconSize)
+            })
+        }).addTo(map);
             
             let layersToFit = hasFire ? [fireCircle, cpPolygon, windLine] : [spillCircle, cpPolygon, windLine];
             map.fitBounds(L.featureGroup(layersToFit).getBounds(), { padding: [50, 50] });
