@@ -53,13 +53,14 @@
         }
         initMap();
 
+        // 🌟 ฟังก์ชันค้นหาสารเคมี (แก้ชื่อตัวแปรให้ตรงกับ JSON ของคุณป๊อป)
         function searchChemical() {
             let val = document.getElementById('chemInput').value.trim().toUpperCase();
             if(!val) return alert("กรุณาระบุข้อมูล");
 
-            // ค้นหาใน ERG_DATABASE
+            // ค้นหาจาก mtl_id แทน un
             let found = ERG_DATABASE.find(c => 
-                String(c.un) === val || 
+                String(c.mtl_id) === val || 
                 (c.name && c.name.toUpperCase().includes(val))
             );
 
@@ -68,17 +69,20 @@
             if (found) {
                 currentChem = found;
                 infoBox.style.display = 'block';
+                // แก้ชื่อตัวแปรในนี้ให้ตรงกัน (mtl_id, guide_num, sm_iso, lg_iso)
                 infoBox.innerHTML = `
                     <b>✅ พบสาร:</b> ${found.name} <br>
-                    <b>🆔 UN:</b> ${found.un} (Guide: ${found.guide})<br>
+                    <b>🆔 UN:</b> ${found.mtl_id} (Guide: ${found.guide_num})<br>
                     <hr style="margin:5px 0; border:0; border-top:1px dashed #e65100;">
                     <b>🔴 รัศมีกั้นเขต (Isolation):</b><br>
-                    - รั่วไหลเล็ก: <b>${found.iso_small || 30}</b> ม.<br>
-                    - รั่วไหลใหญ่: <b>${found.iso_large || 100}</b> ม.<br>
+                    - รั่วไหลเล็ก: <b>${found.sm_iso || 30}</b> ม.<br>
+                    - รั่วไหลใหญ่: <b>${found.lg_iso || 100}</b> ม.<br>
                     - ไฟไหม้: <b>${found.fire_iso || 800}</b> ม.<br>
-                    <small style="color:#d84315;">*แตะบนแผนที่เพื่อจำลองจุดเกิดเหตุ</small>
+                    <small style="color:#d84315;">*แตะบนแผนที่เพื่อสร้างวงกลมระวังภัย</small>
                 `;
+                
                 if (incidentMarker) drawSafetyZones(incidentMarker.getLatLng());
+
             } else {
                 infoBox.style.display = 'none';
                 alert("❌ ไม่พบข้อมูล (ลองค้น 1017 หรือ CHLORINE)");
@@ -101,12 +105,14 @@
             calculateDistance();
         }
 
+        // 🌟 ฟังก์ชันวาดวงกลม (แก้ตัวแปร sm_iso, lg_iso)
         function drawSafetyZones(latlng) {
             if (dangerCircle1) map.removeLayer(dangerCircle1);
             if (dangerCircle2) map.removeLayer(dangerCircle2);
             
-            let rSmall = currentChem.iso_small || 30;
-            let rLarge = currentChem.iso_large || 100;
+            // ดึงค่ารัศมีมาใช้ (ถ้าค่าเป็น null ให้ใช้ Default 30 กับ 100)
+            let rSmall = currentChem.sm_iso || 30;
+            let rLarge = currentChem.lg_iso || 100;
 
             dangerCircle1 = L.circle(latlng, { color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: rSmall }).addTo(map);
             dangerCircle2 = L.circle(latlng, { color: 'orange', fillColor: '#f39c12', fillOpacity: 0.2, radius: rLarge }).addTo(map);
@@ -128,15 +134,16 @@
         });
         map.on('locationerror', function(e){ alert("ไม่สามารถระบุพิกัดได้ กรุณาเปิด GPS"); });
         
+        // 🌟 ฟังก์ชันคำนวณระยะทาง (แก้ตัวแปร sm_iso, lg_iso)
         function calculateDistance() {
             if (incidentMarker && userMarker) {
                 let dist = map.distance(incidentMarker.getLatLng(), userMarker.getLatLng());
                 let el = document.getElementById('distDisplay');
                 el.innerText = Math.round(dist).toLocaleString();
                 
-                if (dist < currentChem.iso_small) {
+                if (dist < (currentChem.sm_iso || 30)) {
                     el.style.color = "#ff0000"; el.innerHTML += " (⛔ อันตราย!)";
-                } else if (dist < currentChem.iso_large) {
+                } else if (dist < (currentChem.lg_iso || 100)) {
                     el.style.color = "#e67e22"; el.innerHTML += " (⚠️ ระวัง)";
                 } else {
                     el.style.color = "#2ecc71"; el.innerHTML += " (✅ ปลอดภัย)";
