@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HazMat Mapper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HazMat Mapper (Mobile)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,33 +11,82 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        body { margin:0; padding:0; font-family: 'Sarabun', sans-serif; display:flex; flex-direction:column; height:100vh; }
-        #map { flex: 1; z-index: 1; }
-        #control-panel { background: white; padding: 15px; border-bottom: 2px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 2; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
-        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
-        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; }
-        .btn-search { background: #1a73e8; }
-        .btn-gps { background: #2ecc71; width: 100%; margin-top: 5px; }
-        #chem-info { display: none; background: #fff3e0; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ffb74d; color: #e65100; }
-        #status-bar { background: #2c3e50; color: white; padding: 10px; text-align: center; font-size: 0.9rem; z-index: 2; }
-        .distance-badge { font-size: 1.2rem; font-weight: bold; color: #f1c40f; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #e5e5e5; }
+        
+        /* 🗺️ แผนที่เต็มจออยู่ข้างหลังสุด */
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
+
+        /* 🔍 ช่องค้นหาแบบลอย (Floating Search) */
+        .search-container {
+            position: absolute; top: 15px; left: 15px; right: 15px; z-index: 1000;
+            display: flex; background: white; border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 5px 10px;
+            align-items: center;
+        }
+        .search-container input {
+            flex: 1; border: none; outline: none; padding: 10px 5px 10px 10px;
+            font-size: 1rem; border-radius: 30px; font-family: 'Sarabun', sans-serif;
+        }
+        .search-container button {
+            background: #1a73e8; color: white; border: none; border-radius: 50%;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 2px 5px rgba(26,115,232,0.4);
+        }
+
+        /* 📋 การ์ดข้อมูลสารเคมี (Pop-up Card) */
+        #chem-info {
+            display: none; position: absolute; top: 75px; left: 15px; right: 15px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-left: 5px solid #ff9800;
+            animation: slideDown 0.3s ease-out;
+        }
+        .close-btn { position: absolute; top: 10px; right: 15px; color: #999; font-size: 1.2rem; cursor: pointer; }
+        
+        /* 📍 ปุ่ม GPS มุมขวาล่าง */
+        .gps-btn {
+            position: absolute; bottom: 80px; right: 15px; z-index: 1000;
+            background: white; border: 2px solid #ddd; border-radius: 50%;
+            width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.2rem;
+        }
+
+        /* 📏 แถบสถานะด้านล่างสุด */
+        #status-bar {
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(44, 62, 80, 0.95); backdrop-filter: blur(5px); color: white;
+            padding: 15px 10px; text-align: center; font-size: 0.95rem;
+            border-top-left-radius: 15px; border-top-right-radius: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .distance-badge { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="control-panel">
-        <h3 style="margin:0 0 10px 0;">☣️ ประเมินระยะภัยสารเคมี (Offline)</h3>
-        <div class="input-group">
-            <input type="text" id="chemInput" placeholder="ระบุ UN No. หรือ ชื่อสาร (เช่น 1017)">
-            <button class="btn-search" onclick="searchChemical()"><i class="fas fa-search"></i> ค้นหา</button>
-        </div>
-        <div id="chem-info"></div>
-        <button class="btn-gps" onclick="locateUser()"><i class="fas fa-crosshairs"></i> ระบุตำแหน่งปัจจุบันของคุณ</button>
+    <div id="map"></div>
+
+    <div class="search-container">
+        <input type="text" id="chemInput" placeholder="ค้นหา UN No. หรือ ชื่อสาร...">
+        <button onclick="searchChemical()"><i class="fas fa-search"></i></button>
     </div>
 
-    <div id="map"></div>
-    <div id="status-bar">ระยะห่างของคุณกับจุดเกิดเหตุ: <span id="distDisplay" class="distance-badge">-</span> เมตร</div>
+    <div id="chem-info">
+        <i class="fas fa-times close-btn" onclick="closeInfo()"></i>
+        <div id="chem-info-content"></div>
+    </div>
+
+    <div class="gps-btn" onclick="locateUser()">
+        <i class="fas fa-crosshairs"></i>
+    </div>
+
+    <div id="status-bar">
+        ระยะห่าง: <span id="distDisplay" class="distance-badge">-</span> เมตร
+    </div>
 
     <script src="db.js"></script>
 
@@ -45,42 +94,54 @@
         let map, incidentMarker, userMarker, dangerCircle1, dangerCircle2, currentChem = null;
 
         function initMap() {
-            map = L.map('map').setView([12.6814, 101.2816], 12); // เริ่มต้นที่ระยอง
+            // ซ่อนปุ่มซูมของ Leaflet (+/-) เพราะในมือถือใช้จีบนิ้วซูมเอาได้ จะได้ดูคลีนๆ
+            map = L.map('map', { zoomControl: false }).setView([12.6814, 101.2816], 12); 
+            
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
+                attribution: '© OSM'
             }).addTo(map);
+            
             map.on('click', function(e) { setIncidentLocation(e.latlng); });
         }
         initMap();
 
-        // 🌟 ฟังก์ชันค้นหาสารเคมี (แก้ชื่อตัวแปรให้ตรงกับ JSON ของคุณป๊อป)
         function searchChemical() {
             let val = document.getElementById('chemInput').value.trim().toUpperCase();
-            if(!val) return alert("กรุณาระบุข้อมูล");
+            if(!val) return alert("กรุณาระบุข้อมูลที่ต้องการค้นหา");
 
-            // ค้นหาจาก mtl_id แทน un
+            // ค้นหา
             let found = ERG_DATABASE.find(c => 
                 String(c.mtl_id) === val || 
                 (c.name && c.name.toUpperCase().includes(val))
             );
 
             let infoBox = document.getElementById('chem-info');
+            let content = document.getElementById('chem-info-content');
             
             if (found) {
                 currentChem = found;
                 infoBox.style.display = 'block';
-                // แก้ชื่อตัวแปรในนี้ให้ตรงกัน (mtl_id, guide_num, sm_iso, lg_iso)
-                infoBox.innerHTML = `
-                    <b>✅ พบสาร:</b> ${found.name} <br>
-                    <b>🆔 UN:</b> ${found.mtl_id} (Guide: ${found.guide_num})<br>
-                    <hr style="margin:5px 0; border:0; border-top:1px dashed #e65100;">
-                    <b>🔴 รัศมีกั้นเขต (Isolation):</b><br>
-                    - รั่วไหลเล็ก: <b>${found.sm_iso || 30}</b> ม.<br>
-                    - รั่วไหลใหญ่: <b>${found.lg_iso || 100}</b> ม.<br>
-                    - ไฟไหม้: <b>${found.fire_iso || 800}</b> ม.<br>
-                    <small style="color:#d84315;">*แตะบนแผนที่เพื่อสร้างวงกลมระวังภัย</small>
+                content.innerHTML = `
+                    <div style="color:#e65100; font-weight:bold; font-size:1.1rem; margin-bottom:5px;">
+                        <i class="fas fa-biohazard"></i> ${found.name}
+                    </div>
+                    <div style="font-size:0.9rem; color:#555; margin-bottom:8px;">
+                        <b>UN:</b> ${found.mtl_id} | <b>Guide:</b> ${found.guide_num}
+                    </div>
+                    <div style="background:#fff3e0; padding:8px; border-radius:8px; font-size:0.85rem; color:#d84315;">
+                        <b>🔴 รัศมีกั้นเขตเบื้องต้น:</b><br>
+                        • รั่วไหลเล็ก: <b>${found.sm_iso || 30}</b> ม.<br>
+                        • รั่วไหลใหญ่: <b>${found.lg_iso || 100}</b> ม.<br>
+                        • กรณีไฟไหม้: <b>${found.fire_iso || 800}</b> ม.
+                    </div>
+                    <div style="margin-top:10px; font-size:0.75rem; color:#888; text-align:center;">
+                        <i class="fas fa-hand-pointer"></i> แตะบนแผนที่เพื่อจำลองจุดเกิดเหตุ
+                    </div>
                 `;
                 
+                // ถอยคีย์บอร์ดลงอัตโนมัติเมื่อค้นหาเสร็จ (UX มือถือ)
+                document.getElementById('chemInput').blur();
+
                 if (incidentMarker) drawSafetyZones(incidentMarker.getLatLng());
 
             } else {
@@ -89,8 +150,14 @@
             }
         }
 
+        // ปิดการ์ด
+        function closeInfo() {
+            document.getElementById('chem-info').style.display = 'none';
+        }
+
         function setIncidentLocation(latlng) {
-            if (!currentChem) return alert("ค้นหาสารเคมีก่อนครับ");
+            if (!currentChem) return alert("กรุณาค้นหาสารเคมีก่อนแตะแผนที่ครับ");
+            
             if (incidentMarker) map.removeLayer(incidentMarker);
             
             var redIcon = new L.Icon({
@@ -101,26 +168,45 @@
 
             incidentMarker = L.marker(latlng, {icon: redIcon}).addTo(map)
                 .bindPopup(`<b>🔥 ${currentChem.name}</b>`).openPopup();
+            
             drawSafetyZones(latlng);
             calculateDistance();
+            
+            // ปิดการ์ดข้อมูลลงเพื่อไม่ให้บังแผนที่
+            closeInfo();
         }
 
-        // 🌟 ฟังก์ชันวาดวงกลม (แก้ตัวแปร sm_iso, lg_iso)
         function drawSafetyZones(latlng) {
             if (dangerCircle1) map.removeLayer(dangerCircle1);
             if (dangerCircle2) map.removeLayer(dangerCircle2);
             
-            // ดึงค่ารัศมีมาใช้ (ถ้าค่าเป็น null ให้ใช้ Default 30 กับ 100)
             let rSmall = currentChem.sm_iso || 30;
             let rLarge = currentChem.lg_iso || 100;
 
-            dangerCircle1 = L.circle(latlng, { color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: rSmall }).addTo(map);
-            dangerCircle2 = L.circle(latlng, { color: 'orange', fillColor: '#f39c12', fillOpacity: 0.2, radius: rLarge }).addTo(map);
-            map.fitBounds(dangerCircle2.getBounds());
+            // วงเล็ก (แดง)
+            dangerCircle1 = L.circle(latlng, { color: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.4, radius: rSmall }).addTo(map);
+            // วงใหญ่ (เหลือง)
+            dangerCircle2 = L.circle(latlng, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.15, radius: rLarge }).addTo(map);
+            
+            // ขยับจอให้พอดีกับวงกลม
+            map.fitBounds(dangerCircle2.getBounds(), { padding: [50, 50] });
         }
 
-        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
+        function locateUser() { 
+            // ให้ปุ่มหมุนเพื่อบอกว่ากำลังหาพิกัด
+            let btn = document.querySelector('.gps-btn i');
+            btn.classList.add('fa-spin', 'fa-spinner');
+            btn.classList.remove('fa-crosshairs');
+            
+            map.locate({setView: true, maxZoom: 16}); 
+        }
+
         map.on('locationfound', function(e) {
+            // คืนค่าปุ่ม
+            let btn = document.querySelector('.gps-btn i');
+            btn.classList.remove('fa-spin', 'fa-spinner');
+            btn.classList.add('fa-crosshairs');
+
             if (userMarker) map.removeLayer(userMarker);
             
             var blueIcon = new L.Icon({
@@ -129,24 +215,32 @@
                 iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
             });
 
-            userMarker = L.marker(e.latlng, {icon: blueIcon}).addTo(map).bindPopup("📍 คุณอยู่ที่นี่").openPopup();
+            userMarker = L.marker(e.latlng, {icon: blueIcon}).addTo(map).bindPopup("📍 ตำแหน่งของคุณ").openPopup();
             calculateDistance();
         });
-        map.on('locationerror', function(e){ alert("ไม่สามารถระบุพิกัดได้ กรุณาเปิด GPS"); });
+
+        map.on('locationerror', function(e){ 
+            let btn = document.querySelector('.gps-btn i');
+            btn.classList.remove('fa-spin', 'fa-spinner');
+            btn.classList.add('fa-crosshairs');
+            alert("ไม่สามารถระบุพิกัดได้ กรุณาเปิด GPS ที่มือถือครับ"); 
+        });
         
-        // 🌟 ฟังก์ชันคำนวณระยะทาง (แก้ตัวแปร sm_iso, lg_iso)
         function calculateDistance() {
             if (incidentMarker && userMarker) {
                 let dist = map.distance(incidentMarker.getLatLng(), userMarker.getLatLng());
                 let el = document.getElementById('distDisplay');
                 el.innerText = Math.round(dist).toLocaleString();
                 
-                if (dist < (currentChem.sm_iso || 30)) {
-                    el.style.color = "#ff0000"; el.innerHTML += " (⛔ อันตราย!)";
-                } else if (dist < (currentChem.lg_iso || 100)) {
-                    el.style.color = "#e67e22"; el.innerHTML += " (⚠️ ระวัง)";
+                let rSmall = currentChem.sm_iso || 30;
+                let rLarge = currentChem.lg_iso || 100;
+
+                if (dist < rSmall) {
+                    el.style.color = "#ff4d4d"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(⛔ อันตราย! อยู่ในเขตกั้น)</span>";
+                } else if (dist < rLarge) {
+                    el.style.color = "#f39c12"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(⚠️ ระวัง! อาจได้รับผลกระทบ)</span>";
                 } else {
-                    el.style.color = "#2ecc71"; el.innerHTML += " (✅ ปลอดภัย)";
+                    el.style.color = "#2ecc71"; el.innerHTML += " <br><span style='font-size:0.8rem;'>(✅ ปลอดภัย)</span>";
                 }
             }
         }
