@@ -313,7 +313,7 @@
 
     <script>
         let map, incidentMarker, userMarker, currentChem = null;
-        let spillCircle, fireCircle, windLine, windArrow, windTextMarker, cpPolygon, cpTextMarker; 
+        let spillCircle, fireCircle, windLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
         
         let osmLayer, satLayer;
         let isSatellite = false;
@@ -332,7 +332,11 @@
             
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
-                setIncidentLocation(e.latlng); 
+                
+                // 🌟 แก้ตรงนี้: เช็คว่าต้องหาสารเคมีก่อน และบนแผนที่ต้องยังไม่มีหมุด ถึงจะปักได้
+                if (currentChem && !incidentMarker) {
+                    setIncidentLocation(e.latlng); 
+                }
             });
 
             // 🌟 🌟 ส่วนที่เพิ่มเข้ามา เพื่อซ่อนป้ายตอนซูมออก 🌟 🌟
@@ -450,24 +454,33 @@
             
             if (incidentMarker) map.removeLayer(incidentMarker);
             
-            // 🌟 1. สร้างไอคอนใหม่แบบมีแอนิเมชันกระพริบ
+            // 🌟 1. สร้างไอคอนกระพริบเหมือนเดิม
             let hazardIcon = L.divIcon({
                 className: 'clear-div-icon',
                 html: `<div class="incident-icon-wrapper" style="width: 30px; height: 30px;"><i class="fas fa-biohazard"></i></div>`,
                 iconSize: [30, 30],
-                iconAnchor: [15, 15] // จัดให้จุดกึ่งกลางวงกลมตรงกับพิกัดเป๊ะๆ
+                iconAnchor: [15, 15]
             });
 
-            // 🌟 2. ปักหมุด พร้อมใส่ป้ายคำว่า "จุดเกิดเหตุ" สั้นๆ ไว้ด้านล่าง
-            incidentMarker = L.marker(latlng, {icon: hazardIcon}).addTo(map)
-                .bindTooltip("จุดเกิดเหตุ", {
+            // 🌟 2. ปักหมุด พร้อมทำให้ "ลากได้" (draggable: true)
+            incidentMarker = L.marker(latlng, {
+                icon: hazardIcon,
+                draggable: true // เปิดฟังก์ชันลากหมุด
+            }).addTo(map)
+                .bindTooltip("จุดเกิดเหตุ (แตะค้างเพื่อลาก)", { // เปลี่ยนป้ายให้รู้ว่าลากได้
                     permanent: true,
-                    direction: 'bottom', // ให้อยู่ด้านล่างหมุด
-                    offset: [0, 15],     // ขยับระยะห่างออกมานิดนึง
+                    direction: 'bottom',
+                    offset: [0, 15],
                     className: 'incident-mini-label'
                 });
             
-            // ยังให้คลิกที่ตัวหมุดเพื่อเปิดการ์ดรายละเอียดได้อยู่
+            // 🌟 3. สั่งให้ระบบวาดพื้นที่ใหม่ เมื่อผู้ใช้ "ปล่อยนิ้ว" หลังจากการลากหมุด
+            incidentMarker.on('dragend', function(event) {
+                let newLatLng = event.target.getLatLng();
+                setIncidentLocation(newLatLng); // รีเซ็ตพิกัดใหม่ทั้งหมด
+            });
+            
+            // ยังคลิกที่หมุดเพื่อเปิดการ์ดรายละเอียดได้ปกติ
             incidentMarker.on('click', openDetailCard);
 
             drawSafetyZones(latlng);
@@ -547,29 +560,45 @@
         }
 
        function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
+            // ลบของเก่าออกก่อนวาดใหม่
             if(windLine) map.removeLayer(windLine);
-            if(windArrow) map.removeLayer(windArrow); // ลบลูกศรเก่าทิ้งไปเลย (ไม่ได้ใช้แล้ว)
+            if(windCenterLine) map.removeLayer(windCenterLine); // 🌟 ลบเส้นแกนกลางเก่า
+            if(windArrow) map.removeLayer(windArrow);           // 🌟 ลบหัวลูกศรเก่า
             if(windTextMarker) map.removeLayer(windTextMarker);
 
             let maxRadius = getMaxActiveRadius();
             let distanceMeters = Math.max(maxRadius * 1.8, 300); // ความยาวของกรวยลม
 
-            // 🌟 1. วาดกรวย (Cone) แสดงพื้นที่ท้ายลม (Downwind Plume) แทนเส้นประเดิม
-            let points = [[lat, lng]]; // เริ่มจากจุดเกิดเหตุ (ปลายแหลม)
-            // กางกรวยออก 30 องศา (-15 ถึง +15) เพื่อให้เห็นอาณาเขตที่ก๊าซอาจพัดไปถึง
+            // 🌟 1. วาดกรวยสีฟ้า (พื้นที่ฟุ้งกระจาย)
+            let points = [[lat, lng]]; 
             for (let i = -15; i <= 15; i += 5) {
                 points.push(getDestination(lat, lng, distanceMeters, angle + i));
             }
-
             windLine = L.polygon(points, {
-                color: '#2980b9',     // ขอบสีฟ้าเข้ม
-                fillColor: '#3498db', // พื้นสีฟ้าสว่าง
-                fillOpacity: 0.25,    // โปร่งแสงกำลังดี ไม่ทับสีวงกลม
-                weight: 2,
-                dashArray: '4, 6'     // เส้นประที่ขอบกรวยให้ดูเป็นทิศทางลื่นไหล
+                color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.25, weight: 2, dashArray: '4, 6'
             }).addTo(map);
 
-            // 🌟 2. ป้ายข้อความแบบใหม่ (Wind Badge) แปะไว้ที่ปลายกรวย
+            // 🌟 2. วาดเส้นแกนกลางและหัวลูกศรสีขาว "ภายในกรวย"
+            let endCenterLatLng = getDestination(lat, lng, distanceMeters, angle); // จุดปลายสุดตรงกลางกรวย
+            
+            // เส้นประสีขาวนำสายตา
+            windCenterLine = L.polyline([[lat, lng], endCenterLatLng], {
+                color: '#ffffff', // สีขาวให้ตัดกับพื้นสีฟ้า
+                weight: 3,
+                dashArray: '5, 8',
+                opacity: 0.9
+            }).addTo(map);
+
+            // หัวลูกศรสีขาวที่ปลายเส้น
+            windArrow = L.marker(endCenterLatLng, {
+                icon: L.divIcon({
+                    className: 'clear-div-icon',
+                    html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 20px; text-shadow: 0 0 4px rgba(0,0,0,0.6); margin-top: -10px; margin-left: -6px;"><i class="fas fa-arrow-up"></i></div>`,
+                    iconSize: [20, 20]
+                })
+            }).addTo(map);
+
+            // 🌟 3. ป้ายข้อความ (Wind Badge) แปะไว้เลยปลายลูกศรไปนิดนึง
             let textLatLng = getDestination(lat, lng, distanceMeters + 40, angle);
             windTextMarker = L.marker(textLatLng, {
                 icon: L.divIcon({ 
