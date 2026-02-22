@@ -70,21 +70,22 @@
         .zone-item { font-size: 0.9rem; margin-bottom: 3px; }
 
         /* 📍 ป้าย CP ปรับให้แสดงผลแนวตั้ง (Icon บน, Text ล่าง) */
+        /* 📍 ป้าย CP แบบใหม่ (กระชับ แถวเดียว) */
         .cp-text-label {
-            background: #1b5e20 !important; /* เขียวเข้ม */
-            border: 2px solid #fff !important;
-            border-radius: 8px !important;
+            background: #1b5e20 !important; /* สีเขียวเข้ม */
+            border: 1px solid #fff !important; /* ขอบขาวบางลง */
+            border-radius: 20px !important; /* ทรงแคปซูลมนๆ */
             color: #fff !important;
             font-weight: bold !important;
-            font-size: 10px !important;
-            padding: 5px !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            text-align: center !important;
-            line-height: 1.2 !important;
+            font-size: 11px !important; /* ขนาดกำลังดี */
+            padding: 3px 10px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             white-space: nowrap !important;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            /* จัดให้ไอคอนกับข้อความอยู่บรรทัดเดียวกัน */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px; /* ระยะห่างระหว่างไอคอนกับตัวหนังสือ */
         }
         /* ลบหัวลูกศรของ Tooltip ออกเพื่อให้ดูสะอาดตา */
         .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
@@ -211,31 +212,43 @@
         /* ------------------------------------------- */
         /* 🗺️ ระบบจัดการป้ายเวลาซูมออก (Semantic Zoom) */
         /* ------------------------------------------- */
-        .zoom-out-mode .leaflet-tooltip {
-            opacity: 0 !important; /* ซ่อนป้าย YOU และ ป้ายจุดเกิดเหตุ */
+        /* ซ่อนป้ายทุกอย่างที่ทำให้รกเมื่อซูมออก */
+        .zoom-out-mode .leaflet-tooltip, /* ป้าย YOU, ป้ายจุดเกิดเหตุ */
+        .zoom-out-mode .cp-text-label,   /* ป้าย Command Post */
+        .zoom-out-mode .wind-badge {     /* ป้ายทิศทางลม */
+            opacity: 0 !important;
             pointer-events: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.3s ease;
         }
-        .zoom-out-mode .cp-text-label, 
-        .zoom-out-mode .clear-div-icon {
-            opacity: 0 !important; /* ซ่อนป้าย CP และ ป้ายบอกทิศลม */
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        /* 🏛️ ป้ายสถานที่สำคัญ (Landmark) */
+
+        /* 🏛️ ไอคอนสถานที่สำคัญ (Landmark) */
         .landmark-icon {
             background: #fff;
             border: 2px solid #34495e;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        /* ซ่อนสถานที่สำคัญตอนซูมออกไกลๆ เหมือนกันจะได้ไม่รก */
-        .zoom-out-mode .landmark-icon {
+        
+        /* 🏷️ ป้ายชื่อสถานที่สำคัญ (ให้โชว์ตลอด) */
+        .landmark-label {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+            padding: 2px 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        /* ซ่อนไอคอนและป้ายสถานที่ด้วยเมื่อซูมออก จะได้ไม่รก */
+        .zoom-out-mode .landmark-icon,
+        .zoom-out-mode .landmark-label {
             opacity: 0 !important;
-            transition: opacity 0.2s;
+            transition: opacity 0.3s ease;
         }
     </style>
 </head>
@@ -357,7 +370,7 @@
 
             // 🌟 🌟 ส่วนที่เพิ่มเข้ามา เพื่อซ่อนป้ายตอนซูมออก 🌟 🌟
             map.on('zoomend', function() {
-                if (map.getZoom() < 15) { // ถ้าระยะซูมน้อยกว่า 15 (ซูมออกไกล)
+                if (map.getZoom() < 15) { // ถ้าระยะซูมน้อยกว่า 16 (ซูมออกไกล)
                     document.getElementById('map').classList.add('zoom-out-mode');
                 } else { // ถ้าซูมเข้ามาใกล้ๆ (มากกว่า 15)
                     document.getElementById('map').classList.remove('zoom-out-mode');
@@ -365,7 +378,7 @@
             });
 
             // เช็คระยะซูมตั้งแต่ตอนเปิดเว็บครั้งแรก
-            if (map.getZoom() < 15) {
+            if (map.getZoom() < 16) {
                 document.getElementById('map').classList.add('zoom-out-mode');
             }
             // 🌟 🌟 สิ้นสุดส่วนที่เพิ่ม 🌟 🌟
@@ -642,21 +655,22 @@
             let startDist = maxRadius + 100; 
             let endDist = Math.max(startDist + 200, 400); 
 
+            // 1. วาดพื้นที่ Polygon สีเขียวเหมือนเดิม
             let points = [];
             for(let i = -30; i <= 30; i += 10) points.push(getDestination(lat, lng, endDist, upwindAngle + i));
             for(let i = 30; i >= -30; i -= 10) points.push(getDestination(lat, lng, startDist, upwindAngle + i));
-
             cpPolygon = L.polygon(points, { color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.35, weight: 2, dashArray: '5, 5' }).addTo(map);
 
-            let cpCenter = getDestination(lat, lng, startDist + 100, upwindAngle);
+            // 🌟 2. คำนวณตำแหน่งป้ายใหม่ ให้อยู่ "นอก" พื้นที่ (ไกลออกไปอีก 60 เมตร)
+            let cpLabelLoc = getDestination(lat, lng, endDist + 60, upwindAngle);
             
-            // 🌟 แก้ไขชื่อตัวแปรจาก cpLoc เป็น cpCenter และจัดรูปแบบป้ายใหม่
-            cpTextMarker = L.marker(cpCenter, {
+            // 🌟 3. สร้างป้ายแบบกระชับ (ข้อความสั้นลง บรรทัดเดียว)
+            cpTextMarker = L.marker(cpLabelLoc, {
                 icon: L.divIcon({ 
                     className: 'cp-text-label', 
-                    html: `<i class="fas fa-shield-alt" style="font-size: 16px; margin-bottom: 2px;"></i><br>จุดตั้ง Command Post`, 
-                    iconSize: [120, 45], 
-                    iconAnchor: [60, 22] 
+                    html: `<i class="fas fa-shield-alt" style="font-size:13px;"></i> พื้นที่ CP (ปลอดภัย)`, 
+                    iconSize: [130, 26], // ปรับขนาดให้เตี้ยลง เหมาะกับบรรทัดเดียว
+                    iconAnchor: [65, 13] // จุดยึดอยู่ตรงกลาง
                 })
             }).addTo(map);
             
@@ -777,10 +791,11 @@
 
                     // ปักหมุดสถานที่
                     L.marker([el.lat, el.lon], {icon: customIcon})
-                        .bindTooltip(`<b>${name}</b>`, {
-                            permanent: false, // 🌟 ให้โชว์ป้ายชื่อเฉพาะตอนเอาเมาส์ชี้/นิ้วแตะ แผนที่จะได้ไม่รก
-                            direction: 'top',
-                            offset: [0, -10]
+                        .bindTooltip(`${name}`, {
+                            permanent: true,    // 🌟 เปลี่ยนเป็น true เพื่อโชว์ชื่อตลอดเวลา
+                            direction: 'right', // 🌟 ให้อักษรชี้ออกไปทางขวา จะได้ไม่ทับไอคอน
+                            offset: [10, 0],
+                            className: 'landmark-label' // 🌟 ใช้ CSS ใหม่ที่เราเพิ่งเขียน
                         })
                         .addTo(landmarkLayer);
                 });
