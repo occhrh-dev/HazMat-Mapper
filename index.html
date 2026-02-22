@@ -222,6 +222,21 @@
             pointer-events: none;
             transition: opacity 0.2s;
         }
+        /* 🏛️ ป้ายสถานที่สำคัญ (Landmark) */
+        .landmark-icon {
+            background: #fff;
+            border: 2px solid #34495e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        /* ซ่อนสถานที่สำคัญตอนซูมออกไกลๆ เหมือนกันจะได้ไม่รก */
+        .zoom-out-mode .landmark-icon {
+            opacity: 0 !important;
+            transition: opacity 0.2s;
+        }
     </style>
 </head>
 <body>
@@ -282,25 +297,25 @@
 
     <div id="wind-modal-overlay">
         <div class="wind-modal-box">
-            <h3><i class="fas fa-wind" style="color:#3498db;"></i> ลมพัดมาจากทิศใด?</h3>
-            <p>กรุณาคลิกเลือกทิศทางที่ลมพัดมาโดนตัวคุณ<br>(ระบบเลือกค่าจาก API ไว้ให้เบื้องต้น)</p>
+            <h3><i class="fas fa-wind" style="color:#3498db;"></i> ลมกำลังพัดไปทางทิศใด?</h3>
+            <p>กรุณาคลิกเลือกทิศทางที่ <b>ก๊าซพิษจะลอยไป</b><br>(ระบบดึงค่า API และแปลงทิศให้แล้วเบื้องต้น)</p>
             
             <div class="speed-display">
                 <i class="fas fa-tachometer-alt"></i> ความเร็วลมอ้างอิงจาก API: <b id="apiWindSpeed">0</b> m/s
             </div>
 
             <div class="compass-grid">
-                <button class="dir-btn" data-angle="315" onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(-45deg);"></i><span>ตะวันตก<br>เฉียงเหนือ</span></button>
-                <button class="dir-btn" data-angle="0"   onclick="selectDir(this)"><i class="fas fa-arrow-down"></i><span>เหนือ (N)</span></button>
-                <button class="dir-btn" data-angle="45"  onclick="selectDir(this)"><i class="fas fa-arrow-down" style="transform: rotate(45deg);"></i><span>ตะวันออก<br>เฉียงเหนือ</span></button>
+                <button class="dir-btn" data-angle="315" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-45deg);"></i><span>ตะวันตก<br>เฉียงเหนือ</span></button>
+                <button class="dir-btn" data-angle="0"   onclick="selectDir(this)"><i class="fas fa-arrow-up"></i><span>เหนือ (N)</span></button>
+                <button class="dir-btn" data-angle="45"  onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(45deg);"></i><span>ตะวันออก<br>เฉียงเหนือ</span></button>
                 
-                <button class="dir-btn" data-angle="270" onclick="selectDir(this)"><i class="fas fa-arrow-right"></i><span>ตะวันตก (W)</span></button>
-                <div class="compass-center"><i class="fas fa-street-view"></i></div>
-                <button class="dir-btn" data-angle="90"  onclick="selectDir(this)"><i class="fas fa-arrow-left"></i><span>ตะวันออก (E)</span></button>
+                <button class="dir-btn" data-angle="270" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-90deg);"></i><span>ตะวันตก (W)</span></button>
+                <div class="compass-center"><i class="fas fa-biohazard" style="color:#e74c3c;"></i></div>
+                <button class="dir-btn" data-angle="90"  onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(90deg);"></i><span>ตะวันออก (E)</span></button>
                 
-                <button class="dir-btn" data-angle="225" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-45deg);"></i><span>ตะวันตก<br>เฉียงใต้</span></button>
-                <button class="dir-btn" data-angle="180" onclick="selectDir(this)"><i class="fas fa-arrow-up"></i><span>ใต้ (S)</span></button>
-                <button class="dir-btn" data-angle="135" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(45deg);"></i><span>ตะวันออก<br>เฉียงใต้</span></button>
+                <button class="dir-btn" data-angle="225" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(-135deg);"></i><span>ตะวันตก<br>เฉียงใต้</span></button>
+                <button class="dir-btn" data-angle="180" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(180deg);"></i><span>ใต้ (S)</span></button>
+                <button class="dir-btn" data-angle="135" onclick="selectDir(this)"><i class="fas fa-arrow-up" style="transform: rotate(135deg);"></i><span>ตะวันออก<br>เฉียงใต้</span></button>
             </div>
 
             <button class="btn-confirm-wind" onclick="confirmWindData()">
@@ -314,6 +329,7 @@
     <script>
         let map, incidentMarker, userMarker, currentChem = null;
         let spillCircle, fireCircle, windLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
+        let landmarkLayer;
         
         let osmLayer, satLayer;
         let isSatellite = false;
@@ -434,9 +450,12 @@
             calculateDistance();
             
             if(currentWindSpeed > 0) {
-                let upwindAngle = currentWindAngle; 
-                let downwindAngle = (currentWindAngle + 180) % 360; 
+                // 🌟 ตัวแปร currentWindAngle ตอนนี้คือ "ทิศที่ลมพัดไป" แล้ว
+                let downwindAngle = currentWindAngle; 
+                // 🌟 CP ต้องอยู่ฝั่งตรงข้าม (เหนือลม)
+                let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
+                
                 drawWindArrowAndText(latlng.lat, latlng.lng, downwindAngle, downwindText, currentWindSpeed);
                 drawCommandPostZone(latlng.lat, latlng.lng, upwindAngle);
             }
@@ -488,6 +507,7 @@
             
             tempLatLng = latlng; 
             fetchWindAndShowModal(latlng.lat, latlng.lng);
+           fetchLandmarks(latlng.lat, latlng.lng);
         }
 
         function drawSafetyZones(latlng) {
@@ -519,7 +539,7 @@
             currentWindAngle = parseInt(btnElement.getAttribute('data-angle'));
         }
 
-        async function fetchWindAndShowModal(lat, lng) {
+       async function fetchWindAndShowModal(lat, lng) {
             try {
                 document.querySelector('.gps-btn i').className = "fas fa-spinner fa-spin";
                 
@@ -529,7 +549,11 @@
                 currentWindSpeed = data.current.wind_speed_10m;
                 document.getElementById('apiWindSpeed').innerText = currentWindSpeed;
                 
-                let closestAngle = getClosestCompassAngle(data.current.wind_direction_10m);
+                // 🌟 ดึงค่าทิศทางลมเดิม แล้วบวก 180 องศาเพื่อแปลงเป็น "ทิศที่ลมพัดไป"
+                let apiWindOrigin = data.current.wind_direction_10m;
+                let windDestination = (apiWindOrigin + 180) % 360; 
+                
+                let closestAngle = getClosestCompassAngle(windDestination);
                 let targetBtn = document.querySelector(`.dir-btn[data-angle="${closestAngle}"]`);
                 if(targetBtn) selectDir(targetBtn);
                 
@@ -550,15 +574,15 @@
             document.getElementById('wind-modal-overlay').style.display = 'none';
 
             if(tempLatLng) {
-                let upwindAngle = currentWindAngle; 
-                let downwindAngle = (currentWindAngle + 180) % 360; 
+                // 🌟 ทำการคำนวณแบบเดียวกัน
+                let downwindAngle = currentWindAngle; 
+                let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
 
                 drawWindArrowAndText(tempLatLng.lat, tempLatLng.lng, downwindAngle, downwindText, currentWindSpeed);
                 drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, upwindAngle);
             }
         }
-
        function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
             // ลบของเก่าออกก่อนวาดใหม่
             if(windLine) map.removeLayer(windLine);
@@ -712,6 +736,57 @@
         }
         function closeDetailCard() { 
             document.getElementById('detail-card').style.display = 'none'; 
+        }
+        // 🌟 ฟังก์ชันสแกนหาสถานที่สำคัญรอบจุดเกิดเหตุ (ฟรีด้วย Overpass API)
+        async function fetchLandmarks(lat, lng) {
+            if (!landmarkLayer) {
+                landmarkLayer = L.layerGroup().addTo(map); // สร้าง Layer ไว้เก็บหมุด
+            }
+            landmarkLayer.clearLayers(); // ลบสถานที่เก่าออกก่อนเวลาลากย้ายจุด
+            
+            // ค้นหาสถานที่ในรัศมี 1500 เมตร (1.5 กม.)
+            let radius = 1500; 
+            // ค้นหา โรงเรียน, โรงพยาบาล, สถานีตำรวจ, วัด, ตลาด/ห้าง
+            let query = `[out:json];(node["amenity"~"school|hospital|police|place_of_worship"](around:${radius},${lat},${lng});node["shop"~"supermarket|mall|convenience"](around:${radius},${lat},${lng}););out;`;
+            let url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+            try {
+                let response = await fetch(url);
+                let data = await response.json();
+
+                data.elements.forEach(el => {
+                    let name = el.tags['name:th'] || el.tags.name; // ดึงชื่อภาษาไทยเป็นหลัก
+                    if (!name) return; 
+
+                    let iconClass = "fas fa-map-marker-alt";
+                    let color = "#34495e";
+
+                    // แยกสีและไอคอนตามประเภท
+                    if (el.tags.amenity === 'school') { iconClass = "fas fa-school"; color = "#e67e22"; } // โรงเรียน สีส้ม
+                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-hospital"; color = "#e74c3c"; } // รพ. สีแดง
+                    else if (el.tags.amenity === 'place_of_worship') { iconClass = "fas fa-vihara"; color = "#f1c40f"; } // วัด สีเหลือง
+                    else if (el.tags.amenity === 'police') { iconClass = "fas fa-shield-alt"; color = "#2980b9"; } // ตำรวจ สีฟ้า
+                    else if (el.tags.shop) { iconClass = "fas fa-shopping-cart"; color = "#27ae60"; } // ห้าง/ตลาด สีเขียว
+
+                    let customIcon = L.divIcon({
+                        className: 'clear-div-icon',
+                        html: `<div class="landmark-icon" style="border-color:${color}; color:${color}; width:22px; height:22px; font-size:11px;"><i class="${iconClass}"></i></div>`,
+                        iconSize: [22, 22],
+                        iconAnchor: [11, 11]
+                    });
+
+                    // ปักหมุดสถานที่
+                    L.marker([el.lat, el.lon], {icon: customIcon})
+                        .bindTooltip(`<b>${name}</b>`, {
+                            permanent: false, // 🌟 ให้โชว์ป้ายชื่อเฉพาะตอนเอาเมาส์ชี้/นิ้วแตะ แผนที่จะได้ไม่รก
+                            direction: 'top',
+                            offset: [0, -10]
+                        })
+                        .addTo(landmarkLayer);
+                });
+            } catch (error) {
+                console.log("ไม่สามารถโหลดสถานที่สำคัญได้", error);
+            }
         }
     </script>
 </body>
