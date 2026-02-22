@@ -194,11 +194,10 @@
     </div>
 
     <div class="float-btn-group">
-    
-        <div class="action-btn" onclick="openTutorial()" style="color: #f39c12;" title="วิธีใช้งาน"><i class="fas fa-question"></i></div>
         
-        <div id="scenario-selector">
-            <div class="scenario-fab" id="btn-fire" onclick="toggleFire()" title="ไฟไหม้">
+        <div class="action-btn" onclick="openTutorial()" style="color: #f39c12;" title="วิธีใช้งาน">
+            <i class="fas fa-question"></i>
+        </div>
         
         <div id="scenario-selector">
             <div class="scenario-fab" id="btn-fire" onclick="toggleFire()" title="ไฟไหม้">
@@ -212,8 +211,12 @@
             </div>
         </div>
 
-        <div class="action-btn satellite" onclick="toggleMapLayer()" id="btnLayer"><i class="fas fa-satellite"></i></div>
-        <div class="action-btn gps-btn" onclick="locateUser()"><i class="fas fa-crosshairs"></i></div>
+        <div class="action-btn satellite" onclick="toggleMapLayer()" id="btnLayer">
+            <i class="fas fa-satellite"></i>
+        </div>
+        <div class="action-btn gps-btn" onclick="locateUser()">
+            <i class="fas fa-crosshairs"></i>
+        </div>
     </div>
 
     <div id="status-bar">ระยะห่าง: <span id="distDisplay" class="distance-badge">-</span> เมตร</div>
