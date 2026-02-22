@@ -11,9 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
+        /* ========================================= */
+        /* 1. Base & Layout                          */
+        /* ========================================= */
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #e5e5e5; }
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
 
+        /* ========================================= */
+        /* 2. Search & Banner (Top UI)               */
+        /* ========================================= */
         .search-container { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; background: white; border-radius: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 5px 10px; align-items: center; }
         .search-container input { flex: 1; border: none; outline: none; padding: 10px 5px 10px 10px; font-size: 1rem; border-radius: 30px; font-family: 'Sarabun', sans-serif; }
         .search-container button { background: #1a73e8; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -21,47 +27,15 @@
         .suggestions-box { display: none; position: absolute; top: 65px; left: 20px; right: 20px; z-index: 999; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 250px; overflow-y: auto; }
         .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.95rem; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; }
 
-        /* ========================================= */
-        /* 🎛️ ปุ่มเลือกเหตุการณ์ (ย้ายมาขวาล่าง ซ้อนกัน) */
-        /* ========================================= */
-        .float-btn-group { position: absolute; bottom: 85px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; align-items: center;}
-        
-        #scenario-selector {
-            display: none; /* ซ่อนไว้ก่อนค้นหาเจอ */
-            flex-direction: column; gap: 10px;
-            margin-bottom: 5px; /* เว้นระยะห่างจากกลุ่มปุ่มด้านล่างนิดนึง */
-            border-bottom: 2px solid #ccc; padding-bottom: 10px;
-        }
+        #chem-banner { display: none; position: absolute; top: 65px; left: 15px; right: 15px; z-index: 999; background: rgba(255, 255, 255, 0.95); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); padding: 8px 12px; cursor: pointer; border-left: 6px solid #e74c3c; backdrop-filter: blur(5px); transition: 0.2s; }
+        #chem-banner:active { transform: scale(0.98); }
+        .chem-banner-content { display: flex; align-items: center; gap: 15px; }
+        #banner-name { font-size: 1rem !important; }
 
-        .scenario-fab {
-            background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px;
-            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-            cursor: pointer; font-size: 1rem; /* ปรับขนาดฟอนต์ให้พอดีกับตัวหนังสือ */
-            font-weight: bold; /* ตัวหนา */
-            color: #95a5a6; transition: 0.2s; position: relative;
-        }
-        #btn-fire i { font-size: 1.2rem; }
-        /* สถานะตอนปุ่มถูกกด (Active) */
-        .scenario-fab.active-fire { background: #d35400; color: white; border-color: #c0392b; }
-        .scenario-fab.active-large { background: #f39c12; color: white; border-color: #e67e22; }
-        .scenario-fab.active-small { background: #e74c3c; color: white; border-color: #c0392b; }
-
-        /* 📍 ป้าย YOU (ปรับให้อยู่ด้านล่างหมุดเพื่อไม่ให้บัง) */
-        .user-location-label {
-            background-color: #27ae60;
-            color: white;
-            border: 1px solid #fff;
-            border-radius: 4px;
-            padding: 1px 4px;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        /* 📋 การ์ดข้อมูลละเอียด (เด้งเมื่อกดหมุด/ป้าย) */
-        #detail-card {
-            display: none; position: absolute; top: 75px; left: 15px; right: 15px; z-index: 1000;
-            background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            border-top: 6px solid #ff9800; padding: 15px; 
-        }
+        /* ========================================= */
+        /* 3. Detail Card                            */
+        /* ========================================= */
+        #detail-card { display: none; position: absolute; top: 75px; left: 15px; right: 15px; z-index: 1000; background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); border-top: 6px solid #ff9800; padding: 15px; }
         .detail-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
         .detail-title { flex: 1; font-weight: bold; color: #e65100; font-size: 1.2rem; }
         .detail-un { font-size: 0.9rem; color: #666; margin-bottom: 10px; }
@@ -69,69 +43,57 @@
         .zone-title { font-weight: bold; color: #d84315; margin-bottom: 5px; }
         .zone-item { font-size: 0.9rem; margin-bottom: 3px; }
 
-        /* 📍 ป้าย CP ปรับให้แสดงผลแนวตั้ง (Icon บน, Text ล่าง) */
-        /* 📍 ป้าย CP แบบใหม่ (กระชับ แถวเดียว) */
-        .cp-text-label {
-            background: #1b5e20 !important; /* สีเขียวเข้ม */
-            border: 1px solid #fff !important; /* ขอบขาวบางลง */
-            border-radius: 20px !important; /* ทรงแคปซูลมนๆ */
-            color: #fff !important;
-            font-weight: bold !important;
-            font-size: 11px !important; /* ขนาดกำลังดี */
-            padding: 3px 10px !important;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            white-space: nowrap !important;
-            /* จัดให้ไอคอนกับข้อความอยู่บรรทัดเดียวกัน */
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 6px; /* ระยะห่างระหว่างไอคอนกับตัวหนังสือ */
-        }
-        /* ลบหัวลูกศรของ Tooltip ออกเพื่อให้ดูสะอาดตา */
-        .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
-            border: none !important;
-        }
-
-        .action-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; color: #1a73e8; font-size: 1.1rem; }
+        /* ========================================= */
+        /* 4. Action Buttons (Bottom Right)          */
+        /* ========================================= */
+        .float-btn-group { position: absolute; bottom: 75px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: center;}
+        #scenario-selector { display: none; flex-direction: column; gap: 8px; margin-bottom: 5px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        
+        /* ยุบรวม CSS ปุ่มให้เป็นหมวดหมู่ และลดขนาดสำหรับมือถือ (38px) */
+        .scenario-fab, .action-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; position: relative; }
+        
+        .scenario-fab { font-size: 0.9rem; font-weight: bold; color: #95a5a6; }
+        #btn-fire i { font-size: 1.1rem; }
+        .scenario-fab.active-fire { background: #d35400; color: white; border-color: #c0392b; }
+        .scenario-fab.active-large { background: #f39c12; color: white; border-color: #e67e22; }
+        .scenario-fab.active-small { background: #e74c3c; color: white; border-color: #c0392b; }
+        
+        .action-btn { color: #1a73e8; font-size: 1rem; }
         .action-btn.satellite { color: #27ae60; }
 
+        /* ========================================= */
+        /* 5. Status Bar (Bottom)                    */
+        /* ========================================= */
         #status-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000; background: rgba(44, 62, 80, 0.95); color: white; padding: 15px 10px; text-align: center; font-size: 0.95rem; border-top-left-radius: 15px; border-top-right-radius: 15px; }
         .distance-badge { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
 
-        /* 📍 ป้ายชื่อสารเคมี (ทำให้ดูเหมือนปุ่ม และคลิกง่าย) */
-        .chem-marker-label {
-            background: #fff;
-            border: 2px solid #e74c3c; /* ขอบแดง */
-            border-radius: 8px;
-            color: #c0392b;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 4px 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            cursor: pointer; /* ทำให้เป็นรูปมือเวลาชี้ */
-        }
-        .wind-text-label { background: transparent; border: none; box-shadow: none; color: #008b8b; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 13px; text-shadow: -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff, 1px 1px 2px #fff; text-align: center; line-height: 1.2; }
-        /* 📍 ป้าย CP (พื้นหลังเขียวเข้ม ตัวหนังสือขาว เห็นชัดขึ้นมาก) */
-        .cp-text-label {
-            background: #1b5e20 !important; 
-            border: 2px solid #fff !important;
-            border-radius: 20px !important;
-            color: #fff !important;
-            font-weight: bold !important;
-            font-size: 11px !important;
-            padding: 3px 10px !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            text-align: center;
-        }
+        /* ========================================= */
+        /* 6. Map Labels & Icons                     */
+        /* ========================================= */
         .clear-div-icon { background: transparent; border: none; }
+        .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { border: none !important; }
 
-        /* 🚨 Modal เข็มทิศ */
+        .user-location-label { background-color: #27ae60; color: white; border: 1px solid #fff; border-radius: 4px; padding: 1px 4px; font-size: 10px; font-weight: bold; }
+        
+        .incident-icon-wrapper { background-color: #c0392b; color: white; border: 2px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 0 10px rgba(192, 57, 43, 0.8); animation: pulse-danger 1.5s infinite; }
+        @keyframes pulse-danger { 0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); } 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); } }
+        .incident-mini-label { background: #c0392b; border: 1px solid #fff; border-radius: 4px; color: #fff; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 10px; padding: 1px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+        .cp-text-label { background: #1b5e20 !important; border: 1px solid #fff !important; border-radius: 20px !important; color: #fff !important; font-weight: bold !important; font-size: 11px !important; padding: 3px 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap !important; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+        .wind-badge { background: #3498db; color: white; padding: 4px 12px; border-radius: 20px; font-family: 'Sarabun', sans-serif; font-weight: bold; font-size: 11px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid white; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+
+        .landmark-icon { background: #fff; border: 2px solid #34495e; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .landmark-label { background: rgba(255, 255, 255, 0.9); border: 1px solid #bdc3c7; border-radius: 4px; font-family: 'Sarabun', sans-serif; font-size: 10px; font-weight: bold; color: #2c3e50; padding: 2px 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap; }
+
+        /* ========================================= */
+        /* 7. Wind Modal                             */
+        /* ========================================= */
         #wind-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .wind-modal-box { background: white; width: 92%; max-width: 380px; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Sarabun', sans-serif; text-align: center; border-top: 6px solid #3498db; }
         .wind-modal-box h3 { margin: 0 0 5px 0; color: #2c3e50; font-size: 1.25rem; }
         .wind-modal-box p { font-size: 0.9rem; color: #c0392b; margin-bottom: 15px; font-weight: bold; }
         .speed-display { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #ddd;}
-        
         .compass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
         .dir-btn { background: #f1f2f6; border: 2px solid #dfe4ea; border-radius: 12px; padding: 15px 5px; font-family: 'Sarabun', sans-serif; font-weight: bold; color: #576574; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .dir-btn i { font-size: 1.2rem; }
@@ -140,115 +102,18 @@
         .compass-center { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bdc3c7; font-size: 2rem; }
         .btn-confirm-wind { background: #2ecc71; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 1.1rem; font-weight: bold; font-family: 'Sarabun', sans-serif; cursor: pointer; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); transition: 0.2s; margin-top: 10px; }
         .btn-confirm-wind:active { transform: scale(0.95); }
-        /* 🏷️ แบนเนอร์ชื่อสารเคมีใต้ช่องค้นหา */
-        #chem-banner {
-            display: none; /* ซ่อนไว้ก่อนค้นหาเจอ */
-            position: absolute; 
-            top: 70px; /* ขยับลงมาอยู่ใต้ช่องค้นหา */
-            left: 15px; right: 15px; 
-            z-index: 999;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            padding: 12px 15px;
-            cursor: pointer;
-            border-left: 6px solid #e74c3c;
-            backdrop-filter: blur(5px);
-            transition: 0.2s;
-        }
-        #chem-banner:active { transform: scale(0.98); } /* เอฟเฟกต์ตอนกดจิ้ม */
-        
-        .chem-banner-content {
-            display: flex; align-items: center; gap: 15px;
-        }
-        /* 🔴 รูปแบบหมุดจุดเกิดเหตุ (ไอคอนเตือนภัย + เอฟเฟกต์กระพริบ) */
-        .incident-icon-wrapper {
-            background-color: #c0392b;
-            color: white;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            box-shadow: 0 0 10px rgba(192, 57, 43, 0.8);
-            animation: pulse-danger 1.5s infinite;
-        }
-        /* แอนิเมชันกระพริบคลื่นสีแดง */
-        @keyframes pulse-danger {
-            0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
-        }
 
-        /* 📍 ป้ายชื่อสั้นๆ ใต้จุดเกิดเหตุ */
-        .incident-mini-label {
-            background: #c0392b;
-            border: 1px solid #fff;
-            border-radius: 4px;
-            color: #fff;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: bold;
-            font-size: 10px;
-            padding: 1px 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        /* 🌬️ ป้ายบอกทิศทางลมแบบใหม่ (Wind Badge) */
-        .wind-badge {
-            background: #3498db; /* สีฟ้า */
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: bold;
-            font-size: 11px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            border: 2px solid white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-        }
-        /* ------------------------------------------- */
-        /* 🗺️ ระบบจัดการป้ายเวลาซูมออก (Semantic Zoom) */
-        /* ------------------------------------------- */
-        /* ซ่อนป้ายทุกอย่างที่ทำให้รกเมื่อซูมออก */
-        .zoom-out-mode .leaflet-tooltip, /* ป้าย YOU, ป้ายจุดเกิดเหตุ */
-        .zoom-out-mode .cp-text-label,   /* ป้าย Command Post */
-        .zoom-out-mode .wind-badge {     /* ป้ายทิศทางลม */
-            opacity: 0 !important;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        /* 🏛️ ไอคอนสถานที่สำคัญ (Landmark) */
-        .landmark-icon {
-            background: #fff;
-            border: 2px solid #34495e;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        
-        /* 🏷️ ป้ายชื่อสถานที่สำคัญ (ให้โชว์ตลอด) */
-        .landmark-label {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
-            font-family: 'Sarabun', sans-serif;
-            font-size: 10px;
-            font-weight: bold;
-            color: #2c3e50;
-            padding: 2px 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            white-space: nowrap;
-        }
-
-        /* ซ่อนไอคอนและป้ายสถานที่ด้วยเมื่อซูมออก จะได้ไม่รก */
+        /* ========================================= */
+        /* 8. Semantic Zoom (Hide elements on zoom out) */
+        /* ========================================= */
+        .zoom-out-mode .leaflet-tooltip, 
+        .zoom-out-mode .cp-text-label,   
+        .zoom-out-mode .wind-badge,
         .zoom-out-mode .landmark-icon,
-        .zoom-out-mode .landmark-label {
-            opacity: 0 !important;
-            transition: opacity 0.3s ease;
+        .zoom-out-mode .landmark-label { 
+            opacity: 0 !important; 
+            pointer-events: none; 
+            transition: opacity 0.3s ease; 
         }
     </style>
 </head>
@@ -499,8 +364,8 @@
                 icon: hazardIcon,
                 draggable: true // เปิดฟังก์ชันลากหมุด
             }).addTo(map)
-                .bindTooltip("จุดเกิดเหตุ (แตะค้างเพื่อลาก)", { // เปลี่ยนป้ายให้รู้ว่าลากได้
-                    permanent: true,
+                .bindTooltip("จุดเกิดเหตุ", { // เปลี่ยนป้ายให้รู้ว่าลากได้
+                    permanent: false,
                     direction: 'bottom',
                     offset: [0, 15],
                     className: 'incident-mini-label'
@@ -599,8 +464,8 @@
       function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
             // ลบของเก่าออกก่อนวาดใหม่
             if(windLine) map.removeLayer(windLine);
-            if(windCenterLine) map.removeLayer(windCenterLine); 
-            if(windArrow) map.removeLayer(windArrow); // เปลี่ยน windArrow เป็นกลุ่ม (Group)
+            if(windCenterLine) map.removeLayer(windCenterLine); // 🌟 ลบเส้นประทิ้ง (แต่โค้ดลบยังต้องมีไว้เผื่อเคลียร์ของเก่า)
+            if(windArrow) map.removeLayer(windArrow);
             if(windTextMarker) map.removeLayer(windTextMarker);
 
             let maxRadius = getMaxActiveRadius();
@@ -615,35 +480,27 @@
                 color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.25, weight: 2, dashArray: '4, 6'
             }).addTo(map);
 
-            // 2. วาดเส้นแกนกลาง (สีขาวโปร่งแสงนิดๆ จะได้ไม่แย่งซีนลูกศร)
-            let endCenterLatLng = getDestination(lat, lng, distanceMeters, angle); 
-            windCenterLine = L.polyline([[lat, lng], endCenterLatLng], {
-                color: '#ffffff', 
-                weight: 2,
-                dashArray: '4, 8',
-                opacity: 0.7
-            }).addTo(map);
-
-            // 🌟 3. สร้างกลุ่มลูกศรนำทาง (Flow Arrows) 3 อัน
+            // 🌟 2. สร้างกลุ่มลูกศรนำทาง (Flow Arrows) ให้ใหญ่ขึ้นและกึ่งกลางเป๊ะๆ
             windArrow = L.featureGroup().addTo(map); 
-            // กระจายลูกศรไว้ที่ระยะ 35%, 65% และ 90% ของความยาวกรวย
-            let arrowPositions = [0.35, 0.65, 0.90]; 
+            // กระจายลูกศรไว้ที่ระยะ 40%, 65% และ 90% ของความยาวกรวย
+            let arrowPositions = [0.40, 0.65, 0.90]; 
             
             arrowPositions.forEach(pos => {
                 let posLatLng = getDestination(lat, lng, distanceMeters * pos, angle);
                 let arrowIcon = L.marker(posLatLng, {
                     icon: L.divIcon({
                         className: 'clear-div-icon',
-                        // ใช้ไอคอนรูปตัว V (Chevron) เรียงกันให้ดูเหมือนการไหลของลม
-                        html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 18px; text-shadow: 0 0 4px rgba(0,0,0,0.6); margin-top: -9px; margin-left: -6px;"><i class="fas fa-chevron-up"></i></div>`,
-                        iconSize: [18, 18]
+                        // ขยาย font-size เป็น 28px และใช้ flex จัดให้อยู่กึ่งกลางกล่อง 30x30px
+                        html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 28px; text-shadow: 0 0 6px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;"><i class="fas fa-chevron-up"></i></div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15] // 🌟 บังคับจุดยึดให้อยู่ตรงกลางเป๊ะๆ ลูกศรจะไม่เบี้ยวแล้ว
                     }),
-                    interactive: false // ป้องกันไม่ให้เผลอไปกดโดนลูกศร
+                    interactive: false 
                 });
                 windArrow.addLayer(arrowIcon);
             });
 
-            // 4. ป้ายข้อความ (Wind Badge) แปะไว้เลยปลายกรวยไปนิดนึง
+            // 3. ป้ายข้อความ (Wind Badge)
             let textLatLng = getDestination(lat, lng, distanceMeters + 40, angle);
             windTextMarker = L.marker(textLatLng, {
                 icon: L.divIcon({ 
@@ -652,7 +509,7 @@
                     iconSize: [160, 30], 
                     iconAnchor: [80, 15] 
                 }),
-                interactive: false // ไม่ให้ป้ายบล็อกการใช้นิ้วเลื่อนแผนที่
+                interactive: false 
             }).addTo(map);
         }
 
