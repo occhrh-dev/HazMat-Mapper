@@ -596,17 +596,17 @@
                 drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, upwindAngle);
             }
         }
-       function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
+      function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
             // ลบของเก่าออกก่อนวาดใหม่
             if(windLine) map.removeLayer(windLine);
-            if(windCenterLine) map.removeLayer(windCenterLine); // 🌟 ลบเส้นแกนกลางเก่า
-            if(windArrow) map.removeLayer(windArrow);           // 🌟 ลบหัวลูกศรเก่า
+            if(windCenterLine) map.removeLayer(windCenterLine); 
+            if(windArrow) map.removeLayer(windArrow); // เปลี่ยน windArrow เป็นกลุ่ม (Group)
             if(windTextMarker) map.removeLayer(windTextMarker);
 
             let maxRadius = getMaxActiveRadius();
             let distanceMeters = Math.max(maxRadius * 1.8, 300); // ความยาวของกรวยลม
 
-            // 🌟 1. วาดกรวยสีฟ้า (พื้นที่ฟุ้งกระจาย)
+            // 1. วาดกรวยสีฟ้า (พื้นที่ฟุ้งกระจาย)
             let points = [[lat, lng]]; 
             for (let i = -15; i <= 15; i += 5) {
                 points.push(getDestination(lat, lng, distanceMeters, angle + i));
@@ -615,27 +615,35 @@
                 color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.25, weight: 2, dashArray: '4, 6'
             }).addTo(map);
 
-            // 🌟 2. วาดเส้นแกนกลางและหัวลูกศรสีขาว "ภายในกรวย"
-            let endCenterLatLng = getDestination(lat, lng, distanceMeters, angle); // จุดปลายสุดตรงกลางกรวย
-            
-            // เส้นประสีขาวนำสายตา
+            // 2. วาดเส้นแกนกลาง (สีขาวโปร่งแสงนิดๆ จะได้ไม่แย่งซีนลูกศร)
+            let endCenterLatLng = getDestination(lat, lng, distanceMeters, angle); 
             windCenterLine = L.polyline([[lat, lng], endCenterLatLng], {
-                color: '#ffffff', // สีขาวให้ตัดกับพื้นสีฟ้า
-                weight: 3,
-                dashArray: '5, 8',
-                opacity: 0.9
+                color: '#ffffff', 
+                weight: 2,
+                dashArray: '4, 8',
+                opacity: 0.7
             }).addTo(map);
 
-            // หัวลูกศรสีขาวที่ปลายเส้น
-            windArrow = L.marker(endCenterLatLng, {
-                icon: L.divIcon({
-                    className: 'clear-div-icon',
-                    html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 20px; text-shadow: 0 0 4px rgba(0,0,0,0.6); margin-top: -10px; margin-left: -6px;"><i class="fas fa-arrow-up"></i></div>`,
-                    iconSize: [20, 20]
-                })
-            }).addTo(map);
+            // 🌟 3. สร้างกลุ่มลูกศรนำทาง (Flow Arrows) 3 อัน
+            windArrow = L.featureGroup().addTo(map); 
+            // กระจายลูกศรไว้ที่ระยะ 35%, 65% และ 90% ของความยาวกรวย
+            let arrowPositions = [0.35, 0.65, 0.90]; 
+            
+            arrowPositions.forEach(pos => {
+                let posLatLng = getDestination(lat, lng, distanceMeters * pos, angle);
+                let arrowIcon = L.marker(posLatLng, {
+                    icon: L.divIcon({
+                        className: 'clear-div-icon',
+                        // ใช้ไอคอนรูปตัว V (Chevron) เรียงกันให้ดูเหมือนการไหลของลม
+                        html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 18px; text-shadow: 0 0 4px rgba(0,0,0,0.6); margin-top: -9px; margin-left: -6px;"><i class="fas fa-chevron-up"></i></div>`,
+                        iconSize: [18, 18]
+                    }),
+                    interactive: false // ป้องกันไม่ให้เผลอไปกดโดนลูกศร
+                });
+                windArrow.addLayer(arrowIcon);
+            });
 
-            // 🌟 3. ป้ายข้อความ (Wind Badge) แปะไว้เลยปลายลูกศรไปนิดนึง
+            // 4. ป้ายข้อความ (Wind Badge) แปะไว้เลยปลายกรวยไปนิดนึง
             let textLatLng = getDestination(lat, lng, distanceMeters + 40, angle);
             windTextMarker = L.marker(textLatLng, {
                 icon: L.divIcon({ 
@@ -643,7 +651,8 @@
                     html: `<div class="wind-badge"><i class="fas fa-wind" style="margin-right:6px; font-size:14px;"></i> พัดไปทิศ ${dirText} (${speed} m/s)</div>`, 
                     iconSize: [160, 30], 
                     iconAnchor: [80, 15] 
-                })
+                }),
+                interactive: false // ไม่ให้ป้ายบล็อกการใช้นิ้วเลื่อนแผนที่
             }).addTo(map);
         }
 
