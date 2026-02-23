@@ -643,14 +643,43 @@
         
         function calculateDistance() {
             if (incidentMarker && userMarker) {
-                let dist = map.distance(incidentMarker.getLatLng(), userMarker.getLatLng());
+                let userLatLng = userMarker.getLatLng();
+                let incidentLatLng = incidentMarker.getLatLng();
+                let dist = map.distance(incidentLatLng, userLatLng);
                 let el = document.getElementById('distDisplay');
                 el.innerText = Math.round(dist).toLocaleString();
                 
                 let maxRadius = getMaxActiveRadius();
+                
+                // 1. เช็คว่าอยู่ในวงกลมรัศมีกั้นเขตหรือไม่
+                let isDangerous = (dist < maxRadius);
 
-                if (dist < maxRadius) { el.style.color = "#ff4d4d"; el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตกั้น)</span>"; } 
-                else { el.style.color = "#2ecc71"; el.innerHTML += " <span style='font-size:0.8rem;'>(✅ อยู่นอกระยะอันตราย)</span>"; }
+                // 🌟 2. เพิ่มการเช็ค: ถ้าอยู่ภายใน "กรวยทิศทางลม" (Downwind Zone)
+                if (!isDangerous && currentWindSpeed > 0) {
+                    // คำนวณองศาระหว่าง จุดเกิดเหตุ -> ตำแหน่งผู้ใช้
+                    let angleToUser = (Math.atan2(userLatLng.lng - incidentLatLng.lng, userLatLng.lat - incidentLatLng.lat) * 180 / Math.PI + 360) % 360;
+                    
+                    // หาความต่างขององศาลมกับองศาที่ผู้ใช้ยืนอยู่
+                    let angleDiff = Math.abs(currentWindAngle - angleToUser);
+                    if (angleDiff > 180) angleDiff = 360 - angleDiff;
+                    
+                    // กำหนดระยะความยาวของกรวยลม (ใช้สูตรเดียวกับที่วาดบนแผนที่)
+                    let plumeDist = Math.max(maxRadius * 1.8, 300); 
+
+                    // ถ้ามุมต่างกันไม่เกิน 15 องศา และระยะไม่เกินความยาวกรวย = อันตราย!
+                    if (angleDiff <= 15 && dist <= plumeDist) {
+                        isDangerous = true;
+                    }
+                }
+
+                // แสดงผลลัพธ์
+                if (isDangerous) { 
+                    el.style.color = "#ff4d4d"; 
+                    el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตอันตราย)</span>"; 
+                } else { 
+                    el.style.color = "#2ecc71"; 
+                    el.innerHTML += " <span style='font-size:0.8rem;'>(✅ อยู่นอกระยะอันตราย)</span>"; 
+                }
             }
         }
         function openDetailCard() {
