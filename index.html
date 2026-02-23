@@ -109,7 +109,6 @@
         /* ========================================= */
         /* 8. Semantic Zoom (Hide elements on zoom out) */
         /* ========================================= */
-        /* 🌟 ให้ซ่อนเฉพาะ "ป้ายข้อความ" แต่ปล่อยไอคอนสถานที่และหมุดจุดเกิดเหตุไว้ */
         .zoom-out-mode .leaflet-tooltip, 
         .zoom-out-mode .cp-text-label,   
         .zoom-out-mode .wind-badge { 
@@ -253,8 +252,9 @@
     <script src="db.js"></script>
 
     <script>
+        // 🌟 1. ประกาศตัวแปร windBufferLine เพิ่มเข้ามา
         let map, incidentMarker, userMarker, currentChem = null;
-        let spillCircle, fireCircle, windLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
+        let spillCircle, fireCircle, windLine, windBufferLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
         let landmarkLayer;
         
         let osmLayer, satLayer;
@@ -275,26 +275,22 @@
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
                 
-                // 🌟 แก้ตรงนี้: เช็คว่าต้องหาสารเคมีก่อน และบนแผนที่ต้องยังไม่มีหมุด ถึงจะปักได้
                 if (currentChem && !incidentMarker) {
                     setIncidentLocation(e.latlng); 
                 }
             });
 
-            // 🌟 🌟 ส่วนที่เพิ่มเข้ามา เพื่อซ่อนป้ายตอนซูมออก 🌟 🌟
             map.on('zoomend', function() {
-                if (map.getZoom() < 16) { // ถ้าระยะซูมน้อยกว่า 16 (ซูมออกไกล)
+                if (map.getZoom() < 16) { 
                     document.getElementById('map').classList.add('zoom-out-mode');
-                } else { // ถ้าซูมเข้ามาใกล้ๆ (มากกว่า 15)
+                } else { 
                     document.getElementById('map').classList.remove('zoom-out-mode');
                 }
             });
 
-            // เช็คระยะซูมตั้งแต่ตอนเปิดเว็บครั้งแรก
             if (map.getZoom() < 16) {
                 document.getElementById('map').classList.add('zoom-out-mode');
             }
-            // 🌟 🌟 สิ้นสุดส่วนที่เพิ่ม 🌟 🌟
         }
         
         initMap();
@@ -342,7 +338,6 @@
                 document.getElementById('banner-name').innerText = currentChem.name;
                 document.getElementById('chem-banner').style.display = 'block';
                 
-                // โชว์แผงปุ่มวงกลมด้านขวาแบบ Flex Column
                 document.getElementById('scenario-selector').style.display = 'flex';
                 
                 setSpillSize('small');
@@ -356,7 +351,6 @@
 
         function setSpillSize(size) {
             spillSize = size;
-            // สลับสถานะของปุ่มรั่วเล็ก/ใหญ่
             document.getElementById('btn-small').classList.toggle('active-small', size === 'small');
             document.getElementById('btn-large').classList.toggle('active-large', size === 'large');
             updateMapFeatures();
@@ -364,7 +358,6 @@
 
         function toggleFire() {
             hasFire = !hasFire;
-            // เปิด/ปิด สถานะปุ่มไฟไหม้
             document.getElementById('btn-fire').classList.toggle('active-fire', hasFire);
             updateMapFeatures();
         }
@@ -376,9 +369,7 @@
             calculateDistance();
             
             if(currentWindSpeed > 0) {
-                // 🌟 ตัวแปร currentWindAngle ตอนนี้คือ "ทิศที่ลมพัดไป" แล้ว
                 let downwindAngle = currentWindAngle; 
-                // 🌟 CP ต้องอยู่ฝั่งตรงข้าม (เหนือลม)
                 let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
                 
@@ -399,7 +390,6 @@
             
             if (incidentMarker) map.removeLayer(incidentMarker);
             
-            // 🌟 1. สร้างไอคอนกระพริบเหมือนเดิม
             let hazardIcon = L.divIcon({
                 className: 'clear-div-icon',
                 html: `<div class="incident-icon-wrapper" style="width: 30px; height: 30px;"><i class="fas fa-biohazard"></i></div>`,
@@ -407,25 +397,22 @@
                 iconAnchor: [15, 15]
             });
 
-            // 🌟 2. ปักหมุด พร้อมทำให้ "ลากได้" (draggable: true)
             incidentMarker = L.marker(latlng, {
                 icon: hazardIcon,
-                draggable: true // เปิดฟังก์ชันลากหมุด
+                draggable: true 
             }).addTo(map)
-                .bindTooltip("จุดเกิดเหตุ", { // เปลี่ยนป้ายให้รู้ว่าลากได้
+                .bindTooltip("จุดเกิดเหตุ", { 
                     permanent: false,
                     direction: 'bottom',
                     offset: [0, 15],
                     className: 'incident-mini-label'
                 });
             
-            // 🌟 3. สั่งให้ระบบวาดพื้นที่ใหม่ เมื่อผู้ใช้ "ปล่อยนิ้ว" หลังจากการลากหมุด
             incidentMarker.on('dragend', function(event) {
                 let newLatLng = event.target.getLatLng();
-                setIncidentLocation(newLatLng); // รีเซ็ตพิกัดใหม่ทั้งหมด
+                setIncidentLocation(newLatLng); 
             });
             
-            // ยังคลิกที่หมุดเพื่อเปิดการ์ดรายละเอียดได้ปกติ
             incidentMarker.on('click', openDetailCard);
 
             drawSafetyZones(latlng);
@@ -433,7 +420,7 @@
             
             tempLatLng = latlng; 
             fetchWindAndShowModal(latlng.lat, latlng.lng);
-           fetchLandmarks(latlng.lat, latlng.lng);
+            fetchLandmarks(latlng.lat, latlng.lng);
         }
 
         function drawSafetyZones(latlng) {
@@ -475,7 +462,6 @@
                 currentWindSpeed = data.current.wind_speed_10m;
                 document.getElementById('apiWindSpeed').innerText = currentWindSpeed;
                 
-                // 🌟 ดึงค่าทิศทางลมเดิม แล้วบวก 180 องศาเพื่อแปลงเป็น "ทิศที่ลมพัดไป"
                 let apiWindOrigin = data.current.wind_direction_10m;
                 let windDestination = (apiWindOrigin + 180) % 360; 
                 
@@ -500,7 +486,6 @@
             document.getElementById('wind-modal-overlay').style.display = 'none';
 
             if(tempLatLng) {
-                // 🌟 ทำการคำนวณแบบเดียวกัน
                 let downwindAngle = currentWindAngle; 
                 let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
@@ -509,17 +494,27 @@
                 drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, upwindAngle);
             }
         }
+
       function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
-            // ลบของเก่าออกก่อนวาดใหม่
             if(windLine) map.removeLayer(windLine);
-            if(windCenterLine) map.removeLayer(windCenterLine); // 🌟 ลบเส้นประทิ้ง (แต่โค้ดลบยังต้องมีไว้เผื่อเคลียร์ของเก่า)
+            if(windBufferLine) map.removeLayer(windBufferLine); // 🌟 ลบของเก่าออกด้วย
+            if(windCenterLine) map.removeLayer(windCenterLine);
             if(windArrow) map.removeLayer(windArrow);
             if(windTextMarker) map.removeLayer(windTextMarker);
 
             let maxRadius = getMaxActiveRadius();
-            let distanceMeters = Math.max(maxRadius * 1.8, 300); // ความยาวของกรวยลม
+            let distanceMeters = Math.max(maxRadius * 1.8, 300); 
 
-            // 1. วาดกรวยสีฟ้า (พื้นที่ฟุ้งกระจาย)
+            // 🌟 2. วาดกรวยสีเหลือง (Buffer Zone กาง 35 องศา) ไว้ชั้นล่างสุด
+            let bufferPoints = [[lat, lng]];
+            for (let i = -35; i <= 35; i += 5) {
+                bufferPoints.push(getDestination(lat, lng, distanceMeters, angle + i));
+            }
+            windBufferLine = L.polygon(bufferPoints, {
+                color: '#f39c12', fillColor: '#f1c40f', fillOpacity: 0.2, weight: 2, dashArray: '5, 5'
+            }).addTo(map);
+
+            // 3. วาดกรวยสีฟ้า (Danger Zone กาง 15 องศา) วางทับไว้ตรงกลาง
             let points = [[lat, lng]]; 
             for (let i = -15; i <= 15; i += 5) {
                 points.push(getDestination(lat, lng, distanceMeters, angle + i));
@@ -528,9 +523,8 @@
                 color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.25, weight: 2, dashArray: '4, 6'
             }).addTo(map);
 
-            // 🌟 2. สร้างกลุ่มลูกศรนำทาง (Flow Arrows) ให้ใหญ่ขึ้นและกึ่งกลางเป๊ะๆ
+            // สร้างกลุ่มลูกศรนำทาง
             windArrow = L.featureGroup().addTo(map); 
-            // กระจายลูกศรไว้ที่ระยะ 40%, 65% และ 90% ของความยาวกรวย
             let arrowPositions = [0.40, 0.65, 0.90]; 
             
             arrowPositions.forEach(pos => {
@@ -538,17 +532,16 @@
                 let arrowIcon = L.marker(posLatLng, {
                     icon: L.divIcon({
                         className: 'clear-div-icon',
-                        // ขยาย font-size เป็น 28px และใช้ flex จัดให้อยู่กึ่งกลางกล่อง 30x30px
                         html: `<div style="transform: rotate(${angle}deg); color: #ffffff; font-size: 28px; text-shadow: 0 0 6px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;"><i class="fas fa-chevron-up"></i></div>`,
                         iconSize: [30, 30],
-                        iconAnchor: [15, 15] // 🌟 บังคับจุดยึดให้อยู่ตรงกลางเป๊ะๆ ลูกศรจะไม่เบี้ยวแล้ว
+                        iconAnchor: [15, 15] 
                     }),
                     interactive: false 
                 });
                 windArrow.addLayer(arrowIcon);
             });
 
-            // 3. ป้ายข้อความ (Wind Badge)
+            // ป้ายข้อความ
             let textLatLng = getDestination(lat, lng, distanceMeters + 40, angle);
             windTextMarker = L.marker(textLatLng, {
                 icon: L.divIcon({ 
@@ -569,22 +562,19 @@
             let startDist = maxRadius + 100; 
             let endDist = Math.max(startDist + 200, 400); 
 
-            // 1. วาดพื้นที่ Polygon สีเขียวเหมือนเดิม
             let points = [];
             for(let i = -30; i <= 30; i += 10) points.push(getDestination(lat, lng, endDist, upwindAngle + i));
             for(let i = 30; i >= -30; i -= 10) points.push(getDestination(lat, lng, startDist, upwindAngle + i));
             cpPolygon = L.polygon(points, { color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.35, weight: 2, dashArray: '5, 5' }).addTo(map);
 
-            // 🌟 2. คำนวณตำแหน่งป้ายใหม่ ให้อยู่ "นอก" พื้นที่ (ไกลออกไปอีก 60 เมตร)
             let cpLabelLoc = getDestination(lat, lng, endDist + 60, upwindAngle);
             
-            // 🌟 3. สร้างป้ายแบบกระชับ (ข้อความสั้นลง บรรทัดเดียว)
             cpTextMarker = L.marker(cpLabelLoc, {
                 icon: L.divIcon({ 
                     className: 'cp-text-label', 
                     html: `<i class="fas fa-shield-alt" style="font-size:13px;"></i> พื้นที่ CP (ปลอดภัย)`, 
-                    iconSize: [130, 26], // ปรับขนาดให้เตี้ยลง เหมาะกับบรรทัดเดียว
-                    iconAnchor: [65, 13] // จุดยึดอยู่ตรงกลาง
+                    iconSize: [130, 26],
+                    iconAnchor: [65, 13]
                 })
             }).addTo(map);
             
@@ -616,18 +606,16 @@
 
             if (userMarker) map.removeLayer(userMarker);
             
-            // 1. สร้างไอคอนหมุดสีเขียว
             var greenIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                 iconSize: [25, 41], iconAnchor: [12, 41]
             });
 
-            // 2. ปักหมุดพร้อมป้าย "YOU" ขนาดเล็ก
             userMarker = L.marker(e.latlng, {icon: greenIcon}).addTo(map)
                 .bindTooltip("YOU", { 
                     permanent: true, 
-                    direction: 'bottom', // 🌟 เปลี่ยนเป็นด้านล่าง
+                    direction: 'bottom',
                     className: 'user-location-label',
                     offset: [0, 5]
                 });
@@ -651,31 +639,35 @@
                 
                 let maxRadius = getMaxActiveRadius();
                 
-                // 1. เช็คว่าอยู่ในวงกลมรัศมีกั้นเขตหรือไม่
                 let isDangerous = (dist < maxRadius);
+                let isWarning = false; // 🌟 3. เพิ่มตัวแปรเช็คสถานะเฝ้าระวัง
 
-                // 🌟 2. เพิ่มการเช็ค: ถ้าอยู่ภายใน "กรวยทิศทางลม" (Downwind Zone)
                 if (!isDangerous && currentWindSpeed > 0) {
-                    // คำนวณองศาระหว่าง จุดเกิดเหตุ -> ตำแหน่งผู้ใช้
                     let angleToUser = (Math.atan2(userLatLng.lng - incidentLatLng.lng, userLatLng.lat - incidentLatLng.lat) * 180 / Math.PI + 360) % 360;
                     
-                    // หาความต่างขององศาลมกับองศาที่ผู้ใช้ยืนอยู่
                     let angleDiff = Math.abs(currentWindAngle - angleToUser);
                     if (angleDiff > 180) angleDiff = 360 - angleDiff;
                     
-                    // กำหนดระยะความยาวของกรวยลม (ใช้สูตรเดียวกับที่วาดบนแผนที่)
                     let plumeDist = Math.max(maxRadius * 1.8, 300); 
 
-                    // ถ้ามุมต่างกันไม่เกิน 15 องศา และระยะไม่เกินความยาวกรวย = อันตราย!
-                    if (angleDiff <= 15 && dist <= plumeDist) {
-                        isDangerous = true;
+                    if (dist <= plumeDist) {
+                        if (angleDiff <= 15) {
+                            // อยู่ในกรวยหลัก
+                            isDangerous = true;
+                        } else if (angleDiff <= 35) {
+                            // 🌟 อยู่ในกรวยเฝ้าระวัง (Buffer Zone)
+                            isWarning = true;
+                        }
                     }
                 }
 
-                // แสดงผลลัพธ์
+                // 🌟 ปรับปรุงการแสดงผลให้ครอบคลุม 3 สถานะ
                 if (isDangerous) { 
                     el.style.color = "#ff4d4d"; 
                     el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตอันตราย)</span>"; 
+                } else if (isWarning) {
+                    el.style.color = "#f39c12"; // สีส้ม
+                    el.innerHTML += " <span style='font-size:0.8rem;'>(⚠️ เฝ้าระวังลมเปลี่ยนทิศ)</span>"; 
                 } else { 
                     el.style.color = "#2ecc71"; 
                     el.innerHTML += " <span style='font-size:0.8rem;'>(✅ อยู่นอกระยะอันตราย)</span>"; 
@@ -694,16 +686,14 @@
         function closeDetailCard() { 
             document.getElementById('detail-card').style.display = 'none'; 
         }
-        // 🌟 ฟังก์ชันสแกนหาสถานที่สำคัญรอบจุดเกิดเหตุ (ฟรีด้วย Overpass API)
+        
         async function fetchLandmarks(lat, lng) {
             if (!landmarkLayer) {
-                landmarkLayer = L.layerGroup().addTo(map); // สร้าง Layer ไว้เก็บหมุด
+                landmarkLayer = L.layerGroup().addTo(map); 
             }
-            landmarkLayer.clearLayers(); // ลบสถานที่เก่าออกก่อนเวลาลากย้ายจุด
+            landmarkLayer.clearLayers(); 
             
-            // ค้นหาสถานที่ในรัศมี 1500 เมตร (1.5 กม.)
             let radius = 1500; 
-            // ค้นหา โรงเรียน, โรงพยาบาล, สถานีตำรวจ, วัด, ตลาด/ห้าง
             let query = `[out:json];(node["amenity"~"school|hospital|police|place_of_worship"](around:${radius},${lat},${lng});node["shop"~"supermarket|mall|convenience"](around:${radius},${lat},${lng}););out;`;
             let url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
@@ -712,18 +702,17 @@
                 let data = await response.json();
 
                 data.elements.forEach(el => {
-                    let name = el.tags['name:th'] || el.tags.name; // ดึงชื่อภาษาไทยเป็นหลัก
+                    let name = el.tags['name:th'] || el.tags.name; 
                     if (!name) return; 
 
                     let iconClass = "fas fa-map-marker-alt";
                     let color = "#34495e";
 
-                    // แยกสีและไอคอนตามประเภท
-                    if (el.tags.amenity === 'school') { iconClass = "fas fa-school"; color = "#e67e22"; } // โรงเรียน สีส้ม
-                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-hospital"; color = "#e74c3c"; } // รพ. สีแดง
-                    else if (el.tags.amenity === 'place_of_worship') { iconClass = "fas fa-vihara"; color = "#f1c40f"; } // วัด สีเหลือง
-                    else if (el.tags.amenity === 'police') { iconClass = "fas fa-shield-alt"; color = "#2980b9"; } // ตำรวจ สีฟ้า
-                    else if (el.tags.shop) { iconClass = "fas fa-shopping-cart"; color = "#27ae60"; } // ห้าง/ตลาด สีเขียว
+                    if (el.tags.amenity === 'school') { iconClass = "fas fa-school"; color = "#e67e22"; } 
+                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-hospital"; color = "#e74c3c"; } 
+                    else if (el.tags.amenity === 'place_of_worship') { iconClass = "fas fa-vihara"; color = "#f1c40f"; } 
+                    else if (el.tags.amenity === 'police') { iconClass = "fas fa-shield-alt"; color = "#2980b9"; } 
+                    else if (el.tags.shop) { iconClass = "fas fa-shopping-cart"; color = "#27ae60"; } 
 
                     let customIcon = L.divIcon({
                         className: 'clear-div-icon',
@@ -732,13 +721,12 @@
                         iconAnchor: [11, 11]
                     });
 
-                    // ปักหมุดสถานที่
                     L.marker([el.lat, el.lon], {icon: customIcon})
                         .bindTooltip(`${name}`, {
-                            permanent: true,    // 🌟 เปลี่ยนเป็น true เพื่อโชว์ชื่อตลอดเวลา
-                            direction: 'right', // 🌟 ให้อักษรชี้ออกไปทางขวา จะได้ไม่ทับไอคอน
+                            permanent: true,    
+                            direction: 'right', 
                             offset: [10, 0],
-                            className: 'landmark-label' // 🌟 ใช้ CSS ใหม่ที่เราเพิ่งเขียน
+                            className: 'landmark-label' 
                         })
                         .addTo(landmarkLayer);
                 });
@@ -746,32 +734,23 @@
                 console.log("ไม่สามารถโหลดสถานที่สำคัญได้", error);
             }
         }
-        // -------------------------------------------
-        // ระบบ Tutorial & Onboarding (จำการเข้าใช้งาน)
-        // -------------------------------------------
+        
         function openTutorial() {
-            // โชว์หน้าจอแบบ flex เพื่อให้อยู่กึ่งกลาง
             document.getElementById('tutorial-overlay').style.display = 'flex';
         }
 
         function closeTutorial() {
-            // ปิดหน้าจอสอนใช้งาน
             document.getElementById('tutorial-overlay').style.display = 'none';
-            // บันทึกลงในเครื่อง (Local Storage) ว่าผู้ใช้คนนี้ "เคยดูแล้ว"
             localStorage.setItem('hazmat_tutorial_seen', 'true');
         }
 
-        // ตรวจสอบทันทีที่โหลดเว็บเสร็จ
         window.addEventListener('load', () => {
             let hasSeenTutorial = localStorage.getItem('hazmat_tutorial_seen');
             if (!hasSeenTutorial) {
-                // ถ้าไม่เคยมีประวัติการดู (เข้าครั้งแรก) ให้เปิดโชว์เลย
                 openTutorial();
             }
         });
-        // -------------------------------------------
-        // เรียกใช้งาน PWA Service Worker
-        // -------------------------------------------
+        
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
