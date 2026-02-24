@@ -752,17 +752,33 @@
             }
         });
         
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker ทำงานแล้วจ้า:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker พัง โค้ดมีปัญหา:', err);
-                    });
+       // -------------------------------------------
+    // ระบบอัปเดตอัตโนมัติ (Auto Update Logic)
+    // -------------------------------------------
+    if ('serviceWorker' in navigator) {
+        let refreshing = false;
+
+        // ดักฟังว่าถ้า Service Worker มีการเปลี่ยนตัว (Controller Change) ให้รีเฟรชหน้าจอ
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload(); // 🌟 สั่งรีเฟรชหน้าจออัตโนมัติ!
+        });
+
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(registration => {
+                console.log('SW Registered:', registration.scope);
+                
+                // เช็คอัปเดตทุกครั้งที่เปิดหน้าเว็บ
+                registration.update(); 
+
+                // หรือจะตั้งเวลาให้เช็คทุกๆ 1 นาทีก็ได้ (เผื่อเปิดหน้านี้ค้างไว้นาน)
+                // setInterval(() => { registration.update(); }, 60000); 
+            }).catch(err => {
+                console.log('SW Registration Failed:', err);
             });
-        }
+        });
+    }
     </script>
 </body>
 </html>
