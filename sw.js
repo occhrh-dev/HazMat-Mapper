@@ -1,45 +1,46 @@
-// 1. เปลี่ยนชื่อเวอร์ชันตรงนี้ทุกครั้งที่มีการแก้โค้ด HTML/JS (เช่น เปลี่ยนเป็น v2, v3, v4)
-const CACHE_NAME = 'hazmat-mapper-v4'; 
+// ⚠️ แก้เลขเวอร์ชันตรงนี้ทุกครั้งที่จะปล่อยของใหม่ (v4, v5, v6...)
+const CACHE_NAME = 'hazmat-mapper-v5'; 
 
 const urlsToCache = [
   './',
   './index.html',
-  './db.js'
+  './db.js',
+  './app-logo.png',
+  './manifest.json'
+  // ใส่ไฟล์อื่นๆ ที่อยากให้แคช
 ];
 
-// ติดตั้งและเก็บ Cache
+// 1. ติดตั้งและบังคับให้ข้ามการรอ (Skip Waiting) ทันที
 self.addEventListener('install', event => {
+  self.skipWaiting(); // 🌟 คำสั่งสำคัญ! บอกว่าไม่ต้องรอคิว ให้แทรกคิวมาเลย
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         return cache.addAll(urlsToCache);
       })
   );
-  self.skipWaiting(); // บังคับให้ Service Worker ตัวใหม่ทำงานทันที
 });
 
-// 🌟 ส่วนที่เพิ่มเข้ามา: ลบ Cache เก่าทิ้งเมื่อมีการเปลี่ยนชื่อ CACHE_NAME
+// 2. ลบแคชเก่าทิ้งทันที
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('ลบแคชเวอร์ชันเก่า:', cacheName);
-            return caches.delete(cacheName);
+            return caches.delete(cacheName); // ลบของเก่าทิ้ง
           }
         })
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // 🌟 สั่งให้ควบคุมหน้าเว็บทันที
 });
 
-// ดึงข้อมูลไปแสดงผล (ถ้ามีเน็ตให้ดึงใหม่ ถ้าไม่มีเน็ตให้ใช้ Cache)
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
     })
   );
 });
