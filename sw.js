@@ -1,5 +1,5 @@
 // 1. เปลี่ยนชื่อเวอร์ชันตรงนี้ทุกครั้งที่มีการแก้โค้ด HTML/JS (เช่น เปลี่ยนเป็น v2, v3, v4)
-const CACHE_NAME = 'hazmat-mapper-v3'; 
+const CACHE_NAME = 'hazmat-mapper-v4'; 
 
 const urlsToCache = [
   './',
