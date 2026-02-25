@@ -52,7 +52,6 @@
         .float-btn-group { position: absolute; bottom: 75px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: center;}
         #scenario-selector { display: none; flex-direction: column; gap: 8px; margin-bottom: 5px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
         
-        /* ยุบรวม CSS ปุ่มให้เป็นหมวดหมู่ และลดขนาดสำหรับมือถือ (38px) */
         .scenario-fab, .action-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; position: relative; }
         
         .scenario-fab { font-size: 0.9rem; font-weight: bold; color: #95a5a6; }
@@ -116,6 +115,7 @@
             pointer-events: none; 
             transition: opacity 0.3s ease; 
         }
+
         /* ========================================= */
         /* 9. Tutorial Modal                         */
         /* ========================================= */
@@ -168,8 +168,9 @@
                     * ข้อมูลอ้างอิงจากคู่มือ ERG  ใช้เพื่อประเมินความเสี่ยงเบื้องต้นเท่านั้น
                 </p>
             </div>
-            </div>
+        </div>
     </div>
+
     <div id="detail-card">
         <i class="fas fa-times" style="float: right; color: #999; cursor: pointer;" onclick="closeDetailCard()"></i>
         <div class="detail-header">
@@ -206,11 +207,9 @@
     </div>
 
     <div class="float-btn-group">
-        
         <div class="action-btn" onclick="openTutorial()" style="color: #f39c12;" title="วิธีใช้งาน">
             <i class="fas fa-question"></i>
         </div>
-        
         <div id="scenario-selector">
             <div class="scenario-fab" id="btn-fire" onclick="toggleFire()" title="ไฟไหม้">
                 <i class="fas fa-fire"></i>
@@ -222,7 +221,6 @@
                 เล็ก
             </div>
         </div>
-
         <div class="action-btn satellite" onclick="toggleMapLayer()" id="btnLayer">
             <i class="fas fa-satellite"></i>
         </div>
@@ -265,10 +263,10 @@
     <script src="db.js"></script>
 
     <script>
-        // 🌟 1. ประกาศตัวแปร windBufferLine เพิ่มเข้ามา
         let map, incidentMarker, userMarker, currentChem = null;
         let spillCircle, fireCircle, windLine, windBufferLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
         let landmarkLayer;
+        let landmarkTimeout; // ตัวแปรกันโหลดรัว (Debounce)
         
         let osmLayer, satLayer;
         let isSatellite = false;
@@ -282,12 +280,33 @@
 
        function initMap() {
             map = L.map('map', { zoomControl: false }).setView([12.6814, 101.2816], 12); 
-            osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-            satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
             
+            // 🌟 เปลี่ยนแผนที่พื้นหลังเป็น ArcGIS World Street Map (ดูแพงและแม่นยำขึ้น)
+            // 🌟 1. แผนที่ถนน (Google Streets) - เหมือนในแอป Google Maps ทั่วไป
+            osmLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            }).addTo(map);
+
+            // 🌟 2. แผนที่ดาวเทียม (Google Hybrid) - เห็นหลังคาบ้านชัดแจ๋ว + มีชื่อถนน
+            satLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            });
+            
+            // 🌟 สั่งให้โหลดชื่อสถานที่อัตโนมัติ เมื่อเลื่อนแผนที่ (Auto-Label)
+            map.on('moveend', function() {
+                if (map.getZoom() >= 14) {
+                    clearTimeout(landmarkTimeout);
+                    landmarkTimeout = setTimeout(() => {
+                        let center = map.getCenter();
+                        fetchLandmarks(center.lat, center.lng);
+                    }, 800);
+                }
+            });
+
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
-                
                 if (currentChem && !incidentMarker) {
                     setIncidentLocation(e.latlng); 
                 }
@@ -350,12 +369,9 @@
                 document.getElementById('banner-un').innerText = `UN: ${currentChem.mtl_id} | Guide: ${currentChem.guide_num || '-'}`;
                 document.getElementById('banner-name').innerText = currentChem.name;
                 document.getElementById('chem-banner').style.display = 'block';
-                
                 document.getElementById('scenario-selector').style.display = 'flex';
-                
                 setSpillSize('small');
                 if(hasFire) toggleFire();
-
                 if (incidentMarker) setIncidentLocation(incidentMarker.getLatLng());
             } else {
                 alert("❌ ไม่พบข้อมูล");
@@ -385,7 +401,6 @@
                 let downwindAngle = currentWindAngle; 
                 let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
-                
                 drawWindArrowAndText(latlng.lat, latlng.lng, downwindAngle, downwindText, currentWindSpeed);
                 drawCommandPostZone(latlng.lat, latlng.lng, upwindAngle);
             }
@@ -400,7 +415,6 @@
 
        function setIncidentLocation(latlng) {
             if (!currentChem) return; 
-            
             if (incidentMarker) map.removeLayer(incidentMarker);
             
             let hazardIcon = L.divIcon({
@@ -430,26 +444,20 @@
 
             drawSafetyZones(latlng);
             calculateDistance();
-            
             tempLatLng = latlng; 
             fetchWindAndShowModal(latlng.lat, latlng.lng);
-            fetchLandmarks(latlng.lat, latlng.lng);
         }
 
         function drawSafetyZones(latlng) {
             if (spillCircle) map.removeLayer(spillCircle);
             if (fireCircle) map.removeLayer(fireCircle);
-            
             let rSpill = (spillSize === 'small') ? (currentChem.sm_iso || 30) : (currentChem.lg_iso || 100);
             let spillColor = (spillSize === 'small') ? '#e74c3c' : '#f39c12';
-            
             spillCircle = L.circle(latlng, { color: spillColor, fillColor: spillColor, fillOpacity: 0.35, weight: 2, radius: rSpill }).addTo(map);
-
             if (hasFire) {
                 let rFire = currentChem.fire_iso || 800;
                 fireCircle = L.circle(latlng, { color: '#d35400', fillColor: '#e67e22', fillOpacity: 0.15, weight: 3, dashArray: '10, 10', radius: rFire }).addTo(map);
             }
-
             let layersToFit = hasFire ? [spillCircle, fireCircle] : [spillCircle];
             map.fitBounds(L.featureGroup(layersToFit).getBounds(), { padding: [30, 30] });
         }
@@ -468,7 +476,6 @@
        async function fetchWindAndShowModal(lat, lng) {
             try {
                 document.querySelector('.gps-btn i').className = "fas fa-spinner fa-spin";
-                
                 let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms`);
                 let data = await res.json();
                 
@@ -477,14 +484,12 @@
                 
                 let apiWindOrigin = data.current.wind_direction_10m;
                 let windDestination = (apiWindOrigin + 180) % 360; 
-                
                 let closestAngle = getClosestCompassAngle(windDestination);
                 let targetBtn = document.querySelector(`.dir-btn[data-angle="${closestAngle}"]`);
                 if(targetBtn) selectDir(targetBtn);
                 
                 document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
                 document.getElementById('wind-modal-overlay').style.display = 'flex';
-
             } catch (e) { 
                 console.log("Wind fetch error"); 
                 document.querySelector('.gps-btn i').className = "fas fa-crosshairs";
@@ -497,12 +502,10 @@
 
         function confirmWindData() {
             document.getElementById('wind-modal-overlay').style.display = 'none';
-
             if(tempLatLng) {
                 let downwindAngle = currentWindAngle; 
                 let upwindAngle = (currentWindAngle + 180) % 360; 
                 let downwindText = getSimpleCompass(downwindAngle); 
-
                 drawWindArrowAndText(tempLatLng.lat, tempLatLng.lng, downwindAngle, downwindText, currentWindSpeed);
                 drawCommandPostZone(tempLatLng.lat, tempLatLng.lng, upwindAngle);
                 calculateDistance();
@@ -511,7 +514,7 @@
 
       function drawWindArrowAndText(lat, lng, angle, dirText, speed) {
             if(windLine) map.removeLayer(windLine);
-            if(windBufferLine) map.removeLayer(windBufferLine); // 🌟 ลบของเก่าออกด้วย
+            if(windBufferLine) map.removeLayer(windBufferLine); 
             if(windCenterLine) map.removeLayer(windCenterLine);
             if(windArrow) map.removeLayer(windArrow);
             if(windTextMarker) map.removeLayer(windTextMarker);
@@ -519,7 +522,6 @@
             let maxRadius = getMaxActiveRadius();
             let distanceMeters = Math.max(maxRadius * 1.8, 300); 
 
-            // 🌟 2. วาดกรวยสีเหลือง (Buffer Zone กาง 35 องศา) ไว้ชั้นล่างสุด
             let bufferPoints = [[lat, lng]];
             for (let i = -35; i <= 35; i += 5) {
                 bufferPoints.push(getDestination(lat, lng, distanceMeters, angle + i));
@@ -528,7 +530,6 @@
                 color: '#f39c12', fillColor: '#f1c40f', fillOpacity: 0.2, weight: 2, dashArray: '5, 5'
             }).addTo(map);
 
-            // 3. วาดกรวยสีฟ้า (Danger Zone กาง 15 องศา) วางทับไว้ตรงกลาง
             let points = [[lat, lng]]; 
             for (let i = -15; i <= 15; i += 5) {
                 points.push(getDestination(lat, lng, distanceMeters, angle + i));
@@ -537,10 +538,8 @@
                 color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.25, weight: 2, dashArray: '4, 6'
             }).addTo(map);
 
-            // สร้างกลุ่มลูกศรนำทาง
             windArrow = L.featureGroup().addTo(map); 
             let arrowPositions = [0.40, 0.65, 0.90]; 
-            
             arrowPositions.forEach(pos => {
                 let posLatLng = getDestination(lat, lng, distanceMeters * pos, angle);
                 let arrowIcon = L.marker(posLatLng, {
@@ -555,7 +554,6 @@
                 windArrow.addLayer(arrowIcon);
             });
 
-            // ป้ายข้อความ
             let textLatLng = getDestination(lat, lng, distanceMeters + 40, angle);
             windTextMarker = L.marker(textLatLng, {
                 icon: L.divIcon({ 
@@ -582,7 +580,6 @@
             cpPolygon = L.polygon(points, { color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.35, weight: 2, dashArray: '5, 5' }).addTo(map);
 
             let cpLabelLoc = getDestination(lat, lng, endDist + 60, upwindAngle);
-            
             cpTextMarker = L.marker(cpLabelLoc, {
                 icon: L.divIcon({ 
                     className: 'cp-text-label', 
@@ -591,7 +588,6 @@
                     iconAnchor: [65, 13]
                 })
             }).addTo(map);
-            
             let layersToFit = hasFire ? [fireCircle, cpPolygon, windLine] : [spillCircle, cpPolygon, windLine];
             map.fitBounds(L.featureGroup(layersToFit).getBounds(), { padding: [50, 50] });
         }
@@ -617,15 +613,12 @@
         map.on('locationfound', function(e) {
             let btn = document.querySelector('.gps-btn i');
             btn.className = "fas fa-crosshairs";
-
             if (userMarker) map.removeLayer(userMarker);
-            
             var greenIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                 iconSize: [25, 41], iconAnchor: [12, 41]
             });
-
             userMarker = L.marker(e.latlng, {icon: greenIcon}).addTo(map)
                 .bindTooltip("YOU", { 
                     permanent: true, 
@@ -633,7 +626,6 @@
                     className: 'user-location-label',
                     offset: [0, 5]
                 });
-
             calculateDistance();
         });
         
@@ -652,35 +644,29 @@
                 el.innerText = Math.round(dist).toLocaleString();
                 
                 let maxRadius = getMaxActiveRadius();
-                
                 let isDangerous = (dist < maxRadius);
-                let isWarning = false; // 🌟 3. เพิ่มตัวแปรเช็คสถานะเฝ้าระวัง
+                let isWarning = false; 
 
                 if (!isDangerous && currentWindSpeed > 0) {
                     let angleToUser = (Math.atan2(userLatLng.lng - incidentLatLng.lng, userLatLng.lat - incidentLatLng.lat) * 180 / Math.PI + 360) % 360;
-                    
                     let angleDiff = Math.abs(currentWindAngle - angleToUser);
                     if (angleDiff > 180) angleDiff = 360 - angleDiff;
-                    
                     let plumeDist = Math.max(maxRadius * 1.8, 300); 
 
                     if (dist <= plumeDist) {
                         if (angleDiff <= 15) {
-                            // อยู่ในกรวยหลัก
                             isDangerous = true;
                         } else if (angleDiff <= 35) {
-                            // 🌟 อยู่ในกรวยเฝ้าระวัง (Buffer Zone)
                             isWarning = true;
                         }
                     }
                 }
 
-                // 🌟 ปรับปรุงการแสดงผลให้ครอบคลุม 3 สถานะ
                 if (isDangerous) { 
                     el.style.color = "#ff4d4d"; 
                     el.innerHTML += " <span style='font-size:0.8rem;'>(⛔ อยู่ในเขตอันตราย)</span>"; 
                 } else if (isWarning) {
-                    el.style.color = "#f39c12"; // สีส้ม
+                    el.style.color = "#f39c12"; 
                     el.innerHTML += " <span style='font-size:0.8rem;'>(⚠️ เฝ้าระวังลมเปลี่ยนทิศ)</span>"; 
                 } else { 
                     el.style.color = "#2ecc71"; 
@@ -701,51 +687,71 @@
             document.getElementById('detail-card').style.display = 'none'; 
         }
         
+        // 🌟 ฟังก์ชันดึงชื่อสถานที่ (ทำงานเบื้องหลัง)
         async function fetchLandmarks(lat, lng) {
             if (!landmarkLayer) {
                 landmarkLayer = L.layerGroup().addTo(map); 
             }
-            landmarkLayer.clearLayers(); 
             
-            let radius = 1500; 
-            let query = `[out:json];(node["amenity"~"school|hospital|police|place_of_worship"](around:${radius},${lat},${lng});node["shop"~"supermarket|mall|convenience"](around:${radius},${lat},${lng}););out;`;
+            let radius = 1200; 
+            let query = `
+                [out:json][timeout:25];
+                (
+                  node["amenity"~"school|hospital|clinic|police|fire_station|place_of_worship"](around:${radius},${lat},${lng});
+                  node["landuse"~"industrial|commercial"](around:${radius},${lat},${lng});
+                  node["man_made"~"works|storage_tank"](around:${radius},${lat},${lng});
+                  way["landuse"~"industrial"](around:${radius},${lat},${lng});
+                  node["shop"~"supermarket|mall|convenience|gas"](around:${radius},${lat},${lng});
+                );
+                out center;
+            `;
             let url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             try {
+                document.querySelector('.gps-btn i').className = "fas fa-sync fa-spin"; // หมุนๆ
                 let response = await fetch(url);
                 let data = await response.json();
+                landmarkLayer.clearLayers(); // ลบของเก่าออกตอนได้ของใหม่แล้ว
 
                 data.elements.forEach(el => {
                     let name = el.tags['name:th'] || el.tags.name; 
-                    if (!name) return; 
+                    if (!name) {
+                        if (el.tags.landuse === 'industrial') name = "เขตอุตสาหกรรม";
+                        else return; 
+                    }
+
+                    let pLat = el.lat || el.center.lat;
+                    let pLon = el.lon || el.center.lon;
 
                     let iconClass = "fas fa-map-marker-alt";
                     let color = "#34495e";
 
-                    if (el.tags.amenity === 'school') { iconClass = "fas fa-school"; color = "#e67e22"; } 
-                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-hospital"; color = "#e74c3c"; } 
-                    else if (el.tags.amenity === 'place_of_worship') { iconClass = "fas fa-vihara"; color = "#f1c40f"; } 
-                    else if (el.tags.amenity === 'police') { iconClass = "fas fa-shield-alt"; color = "#2980b9"; } 
-                    else if (el.tags.shop) { iconClass = "fas fa-shopping-cart"; color = "#27ae60"; } 
+                    if (el.tags.amenity === 'school') { iconClass = "fas fa-child"; color = "#e67e22"; } 
+                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-procedures"; color = "#e74c3c"; } 
+                    else if (el.tags.amenity === 'fire_station') { iconClass = "fas fa-fire-extinguisher"; color = "#c0392b"; } 
+                    else if (el.tags.landuse === 'industrial' || el.tags.man_made) { iconClass = "fas fa-industry"; color = "#8e44ad"; } 
+                    else if (el.tags.shop === 'gas') { iconClass = "fas fa-gas-pump"; color = "#d35400"; } 
 
                     let customIcon = L.divIcon({
                         className: 'clear-div-icon',
-                        html: `<div class="landmark-icon" style="border-color:${color}; color:${color}; width:22px; height:22px; font-size:11px;"><i class="${iconClass}"></i></div>`,
-                        iconSize: [22, 22],
-                        iconAnchor: [11, 11]
+                        html: `<div class="landmark-icon" style="border-color:${color}; color:${color}; width:24px; height:24px; font-size:12px; background:white;"><i class="${iconClass}"></i></div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
                     });
 
-                    L.marker([el.lat, el.lon], {icon: customIcon})
+                    L.marker([pLat, pLon], {icon: customIcon})
                         .bindTooltip(`${name}`, {
                             permanent: true,    
-                            direction: 'right', 
-                            offset: [10, 0],
+                            direction: 'top', 
+                            offset: [0, -10],
                             className: 'landmark-label' 
                         })
                         .addTo(landmarkLayer);
                 });
+                document.querySelector('.gps-btn i').className = "fas fa-crosshairs"; // หยุดหมุน
             } catch (error) {
                 console.log("ไม่สามารถโหลดสถานที่สำคัญได้", error);
+                document.querySelector('.gps-btn i').className = "fas fa-crosshairs"; 
             }
         }
         
@@ -758,37 +764,26 @@
         }
 
         window.addEventListener('load', () => {
-            // ไม่ต้องเช็ค localStorage แล้ว สั่งเปิด Tutorial ทันทีทุกครั้ง!
             openTutorial();
         });
         
-       // -------------------------------------------
-    // ระบบอัปเดตอัตโนมัติ (Auto Update Logic)
-    // -------------------------------------------
-    if ('serviceWorker' in navigator) {
-        let refreshing = false;
-
-        // ดักฟังว่าถ้า Service Worker มีการเปลี่ยนตัว (Controller Change) ให้รีเฟรชหน้าจอ
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload(); // 🌟 สั่งรีเฟรชหน้าจออัตโนมัติ!
-        });
-
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(registration => {
-                console.log('SW Registered:', registration.scope);
-                
-                // เช็คอัปเดตทุกครั้งที่เปิดหน้าเว็บ
-                registration.update(); 
-
-                // หรือจะตั้งเวลาให้เช็คทุกๆ 1 นาทีก็ได้ (เผื่อเปิดหน้านี้ค้างไว้นาน)
-                // setInterval(() => { registration.update(); }, 60000); 
-            }).catch(err => {
-                console.log('SW Registration Failed:', err);
+        if ('serviceWorker' in navigator) {
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload(); 
             });
-        });
-    }
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('SW Registered:', registration.scope);
+                    registration.update(); 
+                }).catch(err => {
+                    console.log('SW Registration Failed:', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
