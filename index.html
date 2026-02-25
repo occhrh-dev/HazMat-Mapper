@@ -755,14 +755,11 @@
 
         function closeTutorial() {
             document.getElementById('tutorial-overlay').style.display = 'none';
-            localStorage.setItem('hazmat_tutorial_seen', 'true');
         }
 
         window.addEventListener('load', () => {
-            let hasSeenTutorial = localStorage.getItem('hazmat_tutorial_seen');
-            if (!hasSeenTutorial) {
-                openTutorial();
-            }
+            // ไม่ต้องเช็ค localStorage แล้ว สั่งเปิด Tutorial ทันทีทุกครั้ง!
+            openTutorial();
         });
         
        // -------------------------------------------
