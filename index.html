@@ -265,15 +265,10 @@
     <script>
         let map, incidentMarker, userMarker, currentChem = null;
         let spillCircle, fireCircle, windLine, windBufferLine, windCenterLine, windArrow, windTextMarker, cpPolygon, cpTextMarker;
-        let landmarkLayer;
-        let landmarkTimeout; // ตัวแปรกันโหลดรัว (Debounce)
-        
         let osmLayer, satLayer;
         let isSatellite = false;
-        
         let spillSize = 'small'; 
         let hasFire = false;     
-        
         let currentWindAngle = 0; 
         let currentWindSpeed = 0;
         let tempLatLng = null; 
@@ -293,18 +288,7 @@
                 maxZoom: 20,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
-            
-            // 🌟 สั่งให้โหลดชื่อสถานที่อัตโนมัติ เมื่อเลื่อนแผนที่ (Auto-Label)
-            map.on('moveend', function() {
-                if (map.getZoom() >= 14) {
-                    clearTimeout(landmarkTimeout);
-                    landmarkTimeout = setTimeout(() => {
-                        let center = map.getCenter();
-                        fetchLandmarks(center.lat, center.lng);
-                    }, 800);
-                }
-            });
-
+           
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
                 if (currentChem && !incidentMarker) {
@@ -683,78 +667,11 @@
             document.getElementById('card-fire').innerText = currentChem.fire_iso || 800;
             document.getElementById('detail-card').style.display = 'block';
         }
+        
         function closeDetailCard() { 
             document.getElementById('detail-card').style.display = 'none'; 
         }
-        
-        // 🌟 ฟังก์ชันดึงชื่อสถานที่ (ทำงานเบื้องหลัง)
-        async function fetchLandmarks(lat, lng) {
-            if (!landmarkLayer) {
-                landmarkLayer = L.layerGroup().addTo(map); 
-            }
-            
-            let radius = 1200; 
-            let query = `
-                [out:json][timeout:25];
-                (
-                  node["amenity"~"school|hospital|clinic|police|fire_station|place_of_worship"](around:${radius},${lat},${lng});
-                  node["landuse"~"industrial|commercial"](around:${radius},${lat},${lng});
-                  node["man_made"~"works|storage_tank"](around:${radius},${lat},${lng});
-                  way["landuse"~"industrial"](around:${radius},${lat},${lng});
-                  node["shop"~"supermarket|mall|convenience|gas"](around:${radius},${lat},${lng});
-                );
-                out center;
-            `;
-            let url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-
-            try {
-                document.querySelector('.gps-btn i').className = "fas fa-sync fa-spin"; // หมุนๆ
-                let response = await fetch(url);
-                let data = await response.json();
-                landmarkLayer.clearLayers(); // ลบของเก่าออกตอนได้ของใหม่แล้ว
-
-                data.elements.forEach(el => {
-                    let name = el.tags['name:th'] || el.tags.name; 
-                    if (!name) {
-                        if (el.tags.landuse === 'industrial') name = "เขตอุตสาหกรรม";
-                        else return; 
-                    }
-
-                    let pLat = el.lat || el.center.lat;
-                    let pLon = el.lon || el.center.lon;
-
-                    let iconClass = "fas fa-map-marker-alt";
-                    let color = "#34495e";
-
-                    if (el.tags.amenity === 'school') { iconClass = "fas fa-child"; color = "#e67e22"; } 
-                    else if (el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic') { iconClass = "fas fa-procedures"; color = "#e74c3c"; } 
-                    else if (el.tags.amenity === 'fire_station') { iconClass = "fas fa-fire-extinguisher"; color = "#c0392b"; } 
-                    else if (el.tags.landuse === 'industrial' || el.tags.man_made) { iconClass = "fas fa-industry"; color = "#8e44ad"; } 
-                    else if (el.tags.shop === 'gas') { iconClass = "fas fa-gas-pump"; color = "#d35400"; } 
-
-                    let customIcon = L.divIcon({
-                        className: 'clear-div-icon',
-                        html: `<div class="landmark-icon" style="border-color:${color}; color:${color}; width:24px; height:24px; font-size:12px; background:white;"><i class="${iconClass}"></i></div>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
-                    });
-
-                    L.marker([pLat, pLon], {icon: customIcon})
-                        .bindTooltip(`${name}`, {
-                            permanent: true,    
-                            direction: 'top', 
-                            offset: [0, -10],
-                            className: 'landmark-label' 
-                        })
-                        .addTo(landmarkLayer);
-                });
-                document.querySelector('.gps-btn i').className = "fas fa-crosshairs"; // หยุดหมุน
-            } catch (error) {
-                console.log("ไม่สามารถโหลดสถานที่สำคัญได้", error);
-                document.querySelector('.gps-btn i').className = "fas fa-crosshairs"; 
-            }
-        }
-        
+                
         function openTutorial() {
             document.getElementById('tutorial-overlay').style.display = 'flex';
         }
