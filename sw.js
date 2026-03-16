@@ -6,8 +6,10 @@ const urlsToCache = [
   './index.html',
   './db.js',
   './app-logo.png',
-  './manifest.json'
-  // ใส่ไฟล์อื่นๆ ที่อยากให้แคช
+  './manifest.json',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
 // 1. ติดตั้งและบังคับให้ข้ามการรอ (Skip Waiting) ทันที
