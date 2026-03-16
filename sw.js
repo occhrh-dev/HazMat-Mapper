@@ -1,5 +1,5 @@
 // ⚠️ แก้เลขเวอร์ชันตรงนี้ทุกครั้งที่จะปล่อยของใหม่ (v4, v5, v6...)
-const CACHE_NAME = 'hazmat-mapper-v1.2'; 
+const CACHE_NAME = 'hazmat-mapper-v1.3'; 
 
 const urlsToCache = [
   './',
