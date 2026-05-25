@@ -281,16 +281,15 @@
             
             // 🌟 เปลี่ยนแผนที่พื้นหลังเป็น ArcGIS World Street Map (ดูแพงและแม่นยำขึ้น)
             // 🌟 1. แผนที่ถนน (Google Streets) - เหมือนในแอป Google Maps ทั่วไป
-            osmLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            }).addTo(map);
-
-            // 🌟 2. แผนที่ดาวเทียม (Google Hybrid) - เห็นหลังคาบ้านชัดแจ๋ว + มีชื่อถนน
-            satLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
+            osmLayer = L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=YOUR_KEY', {
+                    maxZoom: 20,
+                    attribution: '© <a href="https://www.maptiler.com">MapTiler</a> © <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
+                }).addTo(map);
+                
+                satLayer = L.tileLayer('https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=YjovsqrMAGctDQK2PNa48', {
+                    maxZoom: 20,
+                    attribution: '© <a href="https://www.maptiler.com">MapTiler</a>'
+                });
            
             map.on('click', function(e) { 
                 document.getElementById('suggestionsBox').style.display = 'none';
