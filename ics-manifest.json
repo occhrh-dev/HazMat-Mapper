@@ -1,0 +1,23 @@
+{
+  "name": "The 1 ICS Connect",
+  "short_name": "ICS Connect",
+  "description": "Emergency Operations Center - ICS System",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "icons": [
+    {
+      "src": "https://occhrh-dev.github.io/HazMat-Mapper/the1ICS.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://occhrh-dev.github.io/HazMat-Mapper/the1ICS.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
